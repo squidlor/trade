@@ -1,0 +1,51 @@
+# trade.squidlor.com — the trade SPA at /, the chat server's launchpad API at /api/.
+#
+# Install as its OWN file (a syntax error here must not take chat or markets down):
+#   sudo cp nginx-trade.conf.example /etc/nginx/sites-available/trade.squidlor.conf
+#   sudo ln -s /etc/nginx/sites-available/trade.squidlor.conf /etc/nginx/sites-enabled/
+#   sudo nginx -t && sudo systemctl reload nginx
+#
+# TLS comes last, once trade.squidlor.com resolves to this box:
+#   sudo certbot --nginx -d trade.squidlor.com
+# certbot rewrites this block in place (443 listener + 80 redirect). Do NOT point it at another
+# name's certificate as a shortcut: browsers refuse a mismatched cert outright.
+#
+# WHY /api IS PROXIED HERE. The page is same-origin with its API on purpose: no CORS allowlist to
+# extend on the chat server, no preflight round-trip on every quote. The upstream is oracle-chat
+# on :5030, the same process chat.squidlor.com/api talks to. Only /api/launchpad/* is used, but
+# the whole prefix is passed so a new endpoint needs no nginx change.
+server {
+    server_name trade.squidlor.com;
+    root /opt/trade/dist;
+    index index.html;
+    client_max_body_size 256k;
+
+    # Hashed asset filenames are content-addressed: cache forever.
+    location /assets/ {
+        try_files $uri =404;
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+    # index.html names the current asset hashes, so it must never be cached.
+    location = /index.html {
+        add_header Cache-Control "no-cache, must-revalidate";
+        try_files $uri =404;
+    }
+    # /t/<token> and friends are client-side routes.
+    location / {
+        try_files $uri $uri/ /index.html;
+        add_header Cache-Control "no-cache";
+    }
+    location /api/ {
+        proxy_pass http://127.0.0.1:5030;
+        proxy_http_version 1.1;
+        proxy_set_header Host              $host;
+        proxy_set_header X-Real-IP         $remote_addr;
+        proxy_set_header X-Forwarded-For   $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 60s;
+    }
+
+    listen 80;
+    listen [::]:80;
+}
