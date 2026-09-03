@@ -149,8 +149,8 @@ export interface IndexedPool {
 
 export interface TokenOverview {
   chainId: number;
-  token: { address: string; symbol: string; name: string; decimals: number; totalSupply?: number };
-  stock: { symbol: string; tokenSymbol: string; name: string; address: string; decimals: number; priceUsd: number };
+  token: { address: string; symbol: string; name: string; decimals: number; totalSupply?: number; logo?: string };
+  stock: { symbol: string; tokenSymbol: string; name: string; address: string; decimals: number; priceUsd: number; logo?: string };
   launch: {
     source: 'chat' | 'chain' | 'dex';
     launchedHere: boolean;
@@ -210,6 +210,7 @@ export async function fetchToken(key: string, wallet?: string): Promise<TokenOve
       name: str(token.name) ?? '',
       decimals: num(token.decimals) ?? 18,
       ...optional('totalSupply', num(token.totalSupply)),
+      ...optional('logo', str(token.logo)),
     },
     stock: {
       symbol: need(str(stock.symbol), 'stock.symbol'),
@@ -218,6 +219,7 @@ export async function fetchToken(key: string, wallet?: string): Promise<TokenOve
       address: need(str(stock.address), 'stock.address'),
       decimals: num(stock.decimals) ?? 8,
       priceUsd: num(stock.priceUsd) ?? 0,
+      ...optional('logo', str(stock.logo)),
     },
     launch: {
       source,
@@ -411,7 +413,7 @@ export async function postQuote(req: QuoteRequest): Promise<Quote> {
 // ── Launching ───────────────────────────────────────────────────────────────────────────────────
 
 export interface LaunchConfig {
-  stocks: { symbol: string; tokenSymbol: string; name: string; address: string }[];
+  stocks: { symbol: string; tokenSymbol: string; name: string; address: string; logo?: string }[];
   defaults: { startMcUsd: number; supplyTokens: number };
   limits: { startMcUsd: { min: number; max: number }; name: number; symbol: number };
   /** null = launching is free. */
@@ -433,7 +435,7 @@ export async function fetchLaunchConfig(): Promise<LaunchConfig> {
       ? r.stocks.flatMap((x) => {
           if (!isRecord(x)) return [];
           const symbol = str(x.symbol), address = str(x.address);
-          return symbol && address ? [{ symbol, tokenSymbol: str(x.tokenSymbol) ?? `${symbol}c`, name: str(x.name) ?? symbol, address }] : [];
+          return symbol && address ? [{ symbol, tokenSymbol: str(x.tokenSymbol) ?? `${symbol}c`, name: str(x.name) ?? symbol, address, ...optional('logo', str(x.logo)) }] : [];
         })
       : [],
     defaults: { startMcUsd: num(d.startMcUsd) ?? 4_000, supplyTokens: num(d.supplyTokens) ?? 1_000_000_000 },

@@ -2011,3 +2011,37 @@ a.step:hover {
     position: static;
   }
 }
+
+/* ── Logos ─────────────────────────────────────────────────────────────────── */
+.avatar.img {
+  object-fit: cover;
+  background: var(--bg-raised);
+}
+.stock-dot {
+  display: inline-grid;
+  place-items: center;
+  border-radius: 50%;
+  background: rgba(0, 82, 255, 0.25);
+  color: #bcd0ff;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  flex: none;
+  vertical-align: middle;
+}
+.stock-dot.img {
+  object-fit: cover;
+  background: #fff;
+}
+.pair-chip.stock {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.stock-opt {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stock-opt > div {
+  min-width: 0;
+}

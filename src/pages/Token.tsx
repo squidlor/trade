@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router';
 import { useAccount } from 'wagmi';
-import { Avatar } from '../components/Avatar';
+import { StockLogo, TokenLogo } from '../components/TokenLogo';
 import { PredictionCard } from '../components/PredictionCard';
 import { PriceChart } from '../components/PriceChart';
 import { TradePanel } from '../components/TradePanel';
@@ -93,7 +93,7 @@ export function TokenPage() {
       </div>
 
       <header className="thead">
-        <Avatar symbol={o.token.symbol} address={o.token.address} large />
+        <TokenLogo src={o.token.logo} symbol={o.token.symbol} address={o.token.address} large />
         <div>
           <h1>
             {o.token.name || sym}
@@ -101,7 +101,7 @@ export function TokenPage() {
           </h1>
           <div className="thead-meta">
             <span className="pair">
-              paired with <b>{o.stock.tokenSymbol}</b> · {o.stock.name}
+              <StockLogo src={o.stock.logo} symbol={o.stock.symbol} size={14} /> paired with <b>{o.stock.tokenSymbol}</b> · {o.stock.name}
             </span>
             {o.launch.launchedHere ? <span className="tag good">launched on Squidlor</span> : <span className="tag warn">not launched on Squidlor</span>}
             {o.pool?.feePercent !== undefined ? <span className="tag">{o.pool.feePercent}% pool fee</span> : o.pool?.dynamicFee ? <span className="tag">dynamic fee</span> : null}

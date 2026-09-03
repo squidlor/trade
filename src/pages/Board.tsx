@@ -1,8 +1,10 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
-import { Avatar } from '../components/Avatar';
+import { StockLogo, TokenLogo } from '../components/TokenLogo';
 import { fetchBoard, fetchToken, type BoardRow } from '../lib/api';
+
+type Row = BoardRow & { logo?: string; stockLogo?: string };
 import { ago, pct, usd } from '../lib/format';
 import { MARKETS_URL } from '../lib/links';
 
@@ -44,7 +46,7 @@ function Curve() {
 }
 
 /** The newest Squidlor launch, as a ticket. Real data; nothing on it is a placeholder. */
-function FeaturedTicket({ row, pending }: { row?: BoardRow; pending: boolean }) {
+function FeaturedTicket({ row, pending }: { row?: Row; pending: boolean }) {
   const nav = useNavigate();
   if (pending || !row) {
     return (
@@ -69,13 +71,16 @@ function FeaturedTicket({ row, pending }: { row?: BoardRow; pending: boolean }) 
           <span className="ticket-chain">Base · 8453</span>
         </div>
         <div className="ticket-id">
-          <Avatar symbol={row.symbol} address={row.token} large />
+          <TokenLogo src={row.logo} symbol={row.symbol} address={row.token} large />
           <div>
             <div className="ticket-title">{row.name && row.name !== row.symbol ? row.name : `$${row.symbol}`}</div>
             <div className="ticket-pair">
               <span className="pair-chip token">${row.symbol}</span>
               <span className="pair-arrow">⇄</span>
-              <span className="pair-chip stock">{row.stock}c</span>
+              <span className="pair-chip stock">
+                <StockLogo src={row.stockLogo} symbol={row.stock} size={14} />
+                {row.stock}c
+              </span>
               <span className="dim">priced in tokenized {row.stock}</span>
             </div>
           </div>
@@ -108,7 +113,7 @@ function FeaturedTicket({ row, pending }: { row?: BoardRow; pending: boolean }) 
 }
 
 /** A looping tape of every Squidlor launch. Duplicated once so the loop has no seam. */
-function Tape({ rows }: { rows: BoardRow[] }) {
+function Tape({ rows }: { rows: Row[] }) {
   if (rows.length === 0) return null;
   const items = rows.length < 6 ? [...rows, ...rows, ...rows] : rows;
   const seq = [...items, ...items];
@@ -129,7 +134,7 @@ function Tape({ rows }: { rows: BoardRow[] }) {
   );
 }
 
-function Row({ r, i, maxVol, onOpen }: { r: BoardRow; i: number; maxVol: number; onOpen: () => void }) {
+function Row({ r, i, maxVol, onOpen }: { r: Row; i: number; maxVol: number; onOpen: () => void }) {
   const volPct = maxVol > 0 && r.volume24hUsd ? Math.max(3, (r.volume24hUsd / maxVol) * 100) : 0;
   const chg = r.change24hPct;
   return (
@@ -137,7 +142,7 @@ function Row({ r, i, maxVol, onOpen }: { r: BoardRow; i: number; maxVol: number;
       <td className="mono faint hide-s idx">{String(i + 1).padStart(2, '0')}</td>
       <td>
         <div className="tok">
-          <Avatar symbol={r.symbol} address={r.token} />
+          <TokenLogo src={r.logo} symbol={r.symbol} address={r.token} />
           <div className="tok-name">
             <b>${r.symbol}</b>
             <span>{r.name && r.name !== r.symbol ? r.name : `${r.token.slice(0, 10)}…`}</span>
@@ -145,7 +150,10 @@ function Row({ r, i, maxVol, onOpen }: { r: BoardRow; i: number; maxVol: number;
         </div>
       </td>
       <td className="hide-s">
-        <span className="pair-chip stock">{r.stock}c</span>
+        <span className="pair-chip stock">
+          <StockLogo src={r.stockLogo} symbol={r.stock} size={14} />
+          {r.stock}c
+        </span>
       </td>
       <td className="r mono price-cell">{r.priceUsd !== undefined ? usd(r.priceUsd, { compact: false }) : <span className="faint">pre-trade</span>}</td>
       <td className="r">
@@ -186,19 +194,28 @@ export function BoardPage() {
    * token's own page reads the pool's on-chain price; the same read fills the gap here for the few
    * rows that need it, so a fresh launch shows its opening market cap instead of a dash.
    */
-  const bare = (q.data?.rows ?? []).filter((r) => r.priceUsd === undefined).slice(0, 8);
+  // Overviews also carry the token and stock images, so every row gets one (capped so a long board
+  // does not fan out into dozens of requests; the rest keep their monograms).
+  const bare = (q.data?.rows ?? []).slice(0, 12);
   const spots = useQueries({
     queries: bare.map((r) => ({ queryKey: ['token', r.token, ''], queryFn: () => fetchToken(r.token), staleTime: 60_000 })),
   });
   // A string key rather than a spread: the number of queries changes with the data, and a
   // dependency array of changing length is exactly what React warns about.
-  const spotKey = spots.map((s) => s.data?.spot?.priceUsd ?? '').join('|');
-  const all = useMemo(() => {
+  const spotKey = spots.map((s) => (s.data ? `${s.data.spot?.priceUsd ?? ''}:${s.data.token.logo ?? ''}` : '')).join('|');
+  const all: Row[] = useMemo(() => {
     const base = q.data?.rows ?? [];
-    const byToken = new Map(bare.map((r, i) => [r.token, spots[i]?.data?.spot]));
-    return base.map((r) => {
-      const spot = byToken.get(r.token);
-      return spot && r.priceUsd === undefined ? { ...r, priceUsd: spot.priceUsd, ...(spot.mcapUsd !== undefined ? { mcapUsd: spot.mcapUsd } : {}) } : r;
+    const byToken = new Map(bare.map((r, i) => [r.token, spots[i]?.data]));
+    return base.map((r): Row => {
+      const o = byToken.get(r.token);
+      if (!o) return r;
+      const spot = o.spot;
+      return {
+        ...r,
+        ...(o.token.logo ? { logo: o.token.logo } : {}),
+        ...(o.stock.logo ? { stockLogo: o.stock.logo } : {}),
+        ...(spot && r.priceUsd === undefined ? { priceUsd: spot.priceUsd, ...(spot.mcapUsd !== undefined ? { mcapUsd: spot.mcapUsd } : {}) } : {}),
+      };
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q.data, spotKey]);

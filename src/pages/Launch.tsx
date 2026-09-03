@@ -4,6 +4,7 @@ import { Link, useSearchParams } from 'react-router';
 import { isAddress, isHex } from 'viem';
 import { useAccount, usePublicClient, useSendTransaction, useSwitchChain } from 'wagmi';
 import { Avatar } from '../components/Avatar';
+import { StockLogo } from '../components/TokenLogo';
 import { ConnectBlock } from './../components/Connect';
 import { ApiError, fetchLaunchConfig, postConfirm, postPrepare, type LaunchRecord, type PreparedLaunch } from '../lib/api';
 import { amount, usd } from '../lib/format';
@@ -226,8 +227,11 @@ export function LaunchPage() {
             <div className="stock-grid">
               {stocks.map((s) => (
                 <button key={s.symbol} type="button" className={`stock-opt${s.symbol === chosen?.symbol ? ' on' : ''}`} onClick={() => setStock(s.symbol)} disabled={busy}>
-                  <b>{s.tokenSymbol}</b>
-                  <span>{s.name}</span>
+                  <StockLogo src={s.logo} symbol={s.symbol} size={26} />
+                  <div>
+                    <b>{s.tokenSymbol}</b>
+                    <span>{s.name}</span>
+                  </div>
                 </button>
               ))}
               {cfg.isPending ? Array.from({ length: 13 }).map((_, i) => <div key={i} className="stock-opt skeleton" style={{ height: 52 }} />) : null}
@@ -267,7 +271,10 @@ export function LaunchPage() {
                   <div className="ticket-pair">
                     <span className="pair-chip token">${symbol || 'TICKER'}</span>
                     <span className="pair-arrow">⇄</span>
-                    <span className="pair-chip stock">{chosen?.tokenSymbol ?? '…'}</span>
+                    <span className="pair-chip stock">
+                      <StockLogo src={chosen?.logo} symbol={chosen?.symbol ?? '?'} size={14} />
+                      {chosen?.tokenSymbol ?? '…'}
+                    </span>
                   </div>
                 </div>
               </div>
