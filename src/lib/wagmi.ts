@@ -30,8 +30,8 @@ export const wagmiConfig = createConfig({
             metadata: {
               name: 'Squidlor Trade',
               description: 'Trade tokens paired with tokenized stocks on Base',
-              url: typeof window !== 'undefined' ? window.location.origin : 'https://trade.squidlor.com',
-              icons: ['https://trade.squidlor.com/favicon.svg'],
+              url: typeof window !== 'undefined' ? window.location.origin : 'https://squidlor.trade',
+              icons: ['https://squidlor.trade/favicon.svg'],
             },
           }),
         ]

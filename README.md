@@ -1,6 +1,6 @@
 # Squidlor Trade
 
-trade.squidlor.com. Buy and sell tokens that are paired with tokenized US stocks (Coinbase's
+squidlor.trade. Buy and sell tokens that are paired with tokenized US stocks (Coinbase's
 NVDAc, TSLAc, AAPLc, …) on Base. This is the page the GEYSER desk on chat.squidlor.com sends
 people to after a launch.
 
@@ -48,7 +48,7 @@ silently targets the wrong place). See `.env.example` for each key.
 
 `scripts/deploy-trade.sh` in the squidlor workspace builds here, ships `dist/` to
 `/opt/trade/dist` on the prod box and installs `deploy/nginx-trade.conf.example` as the vhost.
-DNS (Cloudflare, by hand) and `certbot --nginx -d trade.squidlor.com` come after the first ship.
+DNS (Cloudflare, by hand) and `certbot --nginx -d squidlor.trade` come after the first ship.
 
 ## Design
 

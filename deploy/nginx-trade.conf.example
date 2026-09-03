@@ -1,12 +1,12 @@
-# trade.squidlor.com — the trade SPA at /, the chat server's launchpad API at /api/.
+# squidlor.trade — the trade SPA at /, the chat server's launchpad API at /api/.
 #
 # Install as its OWN file (a syntax error here must not take chat or markets down):
-#   sudo cp nginx-trade.conf.example /etc/nginx/sites-available/trade.squidlor.conf
-#   sudo ln -s /etc/nginx/sites-available/trade.squidlor.conf /etc/nginx/sites-enabled/
+#   sudo cp nginx-trade.conf.example /etc/nginx/sites-available/squidlor.trade.conf
+#   sudo ln -s /etc/nginx/sites-available/squidlor.trade.conf /etc/nginx/sites-enabled/
 #   sudo nginx -t && sudo systemctl reload nginx
 #
-# TLS comes last, once trade.squidlor.com resolves to this box:
-#   sudo certbot --nginx -d trade.squidlor.com
+# TLS comes last, once squidlor.trade resolves to this box:
+#   sudo certbot --nginx -d squidlor.trade
 # certbot rewrites this block in place (443 listener + 80 redirect). Do NOT point it at another
 # name's certificate as a shortcut: browsers refuse a mismatched cert outright.
 #
@@ -15,7 +15,7 @@
 # on :5030, the same process chat.squidlor.com/api talks to. Only /api/launchpad/* is used, but
 # the whole prefix is passed so a new endpoint needs no nginx change.
 server {
-    server_name trade.squidlor.com;
+    server_name squidlor.trade;
     root /opt/trade/dist;
     index index.html;
     client_max_body_size 256k;
