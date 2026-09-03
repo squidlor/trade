@@ -21,7 +21,7 @@ export const wagmiConfig = createConfig({
   chains: [base],
   connectors: [
     injected({ shimDisconnect: true }),
-    coinbaseWallet({ appName: 'Squidlor Trade', preference: 'all' }),
+    coinbaseWallet({ appName: 'Squidlor Trade', appLogoUrl: 'https://squidlor.trade/squidlor-mark.png', preference: { options: 'all' } }),
     ...(WALLETCONNECT_AVAILABLE
       ? [
           walletConnect({

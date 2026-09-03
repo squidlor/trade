@@ -1439,16 +1439,42 @@ a.step:hover {
   padding: 20px;
   box-shadow: 0 30px 80px -20px rgba(0, 0, 0, 0.7);
 }
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
 .modal h2 {
   font-family: var(--font-display);
   font-weight: 600;
-  font-size: 18px;
-  margin: 0 0 4px;
+  font-size: 20px;
+  letter-spacing: -0.01em;
+  margin: 6px 0 4px;
+}
+.modal-x {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  color: var(--ink-dim);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+}
+.modal-x:hover {
+  color: var(--ink);
+  border-color: var(--line-strong);
 }
 .modal p {
   color: var(--ink-dim);
   font-size: 13px;
   margin: 0 0 16px;
+}
+.modal-foot {
+  margin-top: 14px;
+  font-size: 12px;
+  color: var(--ink-faint);
 }
 .wallets {
   display: flex;
@@ -1473,24 +1499,48 @@ a.step:hover {
   background: var(--primary-tint);
 }
 .wallet-ico {
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
   display: grid;
   place-items: center;
   background: var(--primary-tint);
   border: 1px solid var(--line);
-  font-size: 16px;
+  font-size: 18px;
+  color: var(--orchid);
   flex: none;
+  overflow: hidden;
 }
-.wallet-btn b {
+.wallet-ico img {
+  width: 22px;
+  height: 22px;
+  border-radius: 5px;
+}
+.wallet-txt {
+  flex: 1;
+  min-width: 0;
+}
+.wallet-txt b {
   display: block;
   font-weight: 600;
 }
-.wallet-btn span {
+.wallet-txt span {
   display: block;
   font-size: 12px;
   color: var(--ink-dim);
+}
+.wallet-go {
+  color: var(--ink-faint);
+  transition:
+    transform 0.15s,
+    color 0.15s;
+}
+.wallet-btn:hover:not(:disabled) .wallet-go {
+  color: var(--orchid);
+  transform: translateX(3px);
+}
+.wallet-btn.busy {
+  border-color: var(--primary-soft);
 }
 .acct {
   display: inline-flex;

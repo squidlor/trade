@@ -11,12 +11,20 @@ import { short } from '../lib/format';
 
 const glyph = (c: Connector): string => {
   const id = c.id.toLowerCase();
-  if (id.includes('coinbase')) return '🔵';
-  if (id.includes('walletconnect')) return '🔗';
+  if (id.includes('coinbase')) return '◍';
+  if (id.includes('walletconnect')) return '◎';
   if (id.includes('metamask')) return '🦊';
   if (id.includes('rabby')) return '🐰';
   if (id.includes('phantom')) return '👻';
   return '👛';
+};
+
+/** Wallet errors are written for developers. The one or two people hit most get a human line. */
+const friendly = (m: string): string => {
+  if (/user rejected|user denied|rejected the request|closed/i.test(m)) return 'Cancelled in the wallet.';
+  if (/could not resolve|failed to fetch dynamically|import/i.test(m)) return 'That wallet option failed to load. Reload the page and try again.';
+  if (/already pending|resource unavailable/i.test(m)) return 'Your wallet already has a request open. Finish it there first.';
+  return m.split('\n')[0]?.slice(0, 160) ?? 'Could not connect.';
 };
 
 const hint = (c: Connector): string => {
@@ -47,18 +55,28 @@ export function ConnectModal({ onClose }: { onClose: () => void }) {
   return (
     <div className="modal-bg" onClick={onClose} role="presentation">
       <div className="modal" role="dialog" aria-modal="true" aria-labelledby="connect-title" onClick={(e) => e.stopPropagation()}>
-        <h2 id="connect-title">Connect a wallet</h2>
-        <p>On Base. Nothing is signed by connecting; the wallet asks before any trade.</p>
+        <div className="modal-head">
+          <div>
+            <span className="eyebrow">Base · 8453</span>
+            <h2 id="connect-title">Connect a wallet</h2>
+          </div>
+          <button className="modal-x" onClick={onClose} aria-label="Close">
+            ✕
+          </button>
+        </div>
+        <p>Nothing is signed by connecting. Your wallet asks before any trade.</p>
         <div className="wallets">
           {list.map((c) => {
             const busy = isPending && variables?.connector === c;
             return (
-              <button key={c.uid} className="wallet-btn" onClick={() => connect({ connector: c })} disabled={isPending}>
-                <span className="wallet-ico">{glyph(c)}</span>
-                <span>
+              <button key={c.uid} className={`wallet-btn${busy ? ' busy' : ''}`} onClick={() => connect({ connector: c })} disabled={isPending}>
+                {/* EIP-6963 wallets announce their own icon; the SDK connectors get a drawn one. */}
+                <span className="wallet-ico">{c.icon ? <img src={c.icon} alt="" width={22} height={22} /> : <span aria-hidden="true">{glyph(c)}</span>}</span>
+                <span className="wallet-txt">
                   <b>{c.name}</b>
                   <span>{busy ? 'Check your wallet…' : hint(c)}</span>
                 </span>
+                <span className="wallet-go" aria-hidden="true">{busy ? '…' : '→'}</span>
               </button>
             );
           })}
@@ -66,9 +84,10 @@ export function ConnectModal({ onClose }: { onClose: () => void }) {
         </div>
         {error ? (
           <div className="notice err" style={{ marginTop: 12, marginBottom: 0 }}>
-            {error.message.split('\n')[0]}
+            {friendly(error.message)}
           </div>
         ) : null}
+        <div className="modal-foot">New to wallets? Coinbase Wallet creates one in a minute, no extension needed.</div>
       </div>
     </div>
   );
