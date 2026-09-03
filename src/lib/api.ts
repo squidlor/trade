@@ -552,3 +552,64 @@ export async function putImage(tokenAddress: string, authToken: string, dataUrl:
 export async function deleteImage(tokenAddress: string, authToken: string): Promise<void> {
   await getJson(`/api/launchpad/token/${tokenAddress}/image`, { method: 'DELETE', headers: authed(authToken) });
 }
+
+// ── Creator earnings ────────────────────────────────────────────────────────────────────────────
+
+export interface CreatorLaunch {
+  token: { address: string; symbol: string; name: string; logo?: string };
+  stock: { symbol: string; tokenSymbol: string; address: string; priceUsd: number };
+  createdAt: string;
+  sharePercent: number;
+  beneficiaries: { address: string; sharePercent: number; role: 'you' | 'protocol' | 'treasury' | 'other' }[];
+  spot?: { priceUsd: number; mcapUsd?: number };
+  claimable?: { token: string; stock: string; usd: number };
+  claimError?: string;
+  claim: { to: string; data: string; gasLimit: number };
+  links: Links;
+}
+
+export interface CreatorSummary {
+  wallet: string;
+  isTreasury: boolean;
+  launches: CreatorLaunch[];
+  totals: { claimableUsd: number; launches: number };
+}
+
+export async function fetchCreator(wallet: string): Promise<CreatorSummary> {
+  const b = await getJson(`/api/launchpad/creator/${encodeURIComponent(wallet)}`);
+  const r = isRecord(b) ? b : {};
+  const totals = isRecord(r.totals) ? r.totals : {};
+  const launches: CreatorLaunch[] = Array.isArray(r.launches)
+    ? r.launches.flatMap((l): CreatorLaunch[] => {
+        if (!isRecord(l)) return [];
+        const token = isRecord(l.token) ? l.token : {};
+        const stock = isRecord(l.stock) ? l.stock : {};
+        const spot = isRecord(l.spot) ? l.spot : undefined;
+        const cl = isRecord(l.claimable) ? l.claimable : undefined;
+        const claim = isRecord(l.claim) ? l.claim : {};
+        const addr = str(token.address);
+        if (!addr) return [];
+        return [
+          {
+            token: { address: addr, symbol: str(token.symbol) ?? '', name: str(token.name) ?? '', ...optional('logo', str(token.logo)) },
+            stock: { symbol: str(stock.symbol) ?? '', tokenSymbol: str(stock.tokenSymbol) ?? '', address: str(stock.address) ?? '', priceUsd: num(stock.priceUsd) ?? 0 },
+            createdAt: str(l.createdAt) ?? '',
+            sharePercent: num(l.sharePercent) ?? 0,
+            beneficiaries: Array.isArray(l.beneficiaries)
+              ? l.beneficiaries.flatMap((x) => {
+                  if (!isRecord(x)) return [];
+                  const role = x.role === 'you' || x.role === 'protocol' || x.role === 'treasury' ? x.role : 'other';
+                  return [{ address: str(x.address) ?? '', sharePercent: num(x.sharePercent) ?? 0, role }];
+                })
+              : [],
+            ...(spot && num(spot.priceUsd) !== undefined ? { spot: { priceUsd: num(spot.priceUsd) ?? 0, ...optional('mcapUsd', num(spot.mcapUsd)) } } : {}),
+            ...(cl ? { claimable: { token: str(cl.token) ?? '0', stock: str(cl.stock) ?? '0', usd: num(cl.usd) ?? 0 } } : {}),
+            ...optional('claimError', str(l.claimError)),
+            claim: { to: str(claim.to) ?? '', data: str(claim.data) ?? '0x', gasLimit: num(claim.gasLimit) ?? 0 },
+            links: parseLinks(l.links),
+          },
+        ];
+      })
+    : [];
+  return { wallet: str(r.wallet) ?? wallet, isTreasury: bool(r.isTreasury), launches, totals: { claimableUsd: num(totals.claimableUsd) ?? 0, launches: num(totals.launches) ?? launches.length } };
+}
