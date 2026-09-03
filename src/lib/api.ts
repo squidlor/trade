@@ -420,6 +420,8 @@ export interface LaunchConfig {
   limits: { startMcUsd: { min: number; max: number }; name: number; symbol: number };
   /** null = launching is free. */
   fee: { wei: string; eth: string; treasury: string } | null;
+  /** Address pinned as the board's featured launch, when one is. */
+  featured: string | null;
   feeShare: { protocolBps: number; treasuryBps: number };
   poolFeePercent: number;
 }
@@ -443,6 +445,7 @@ export async function fetchLaunchConfig(): Promise<LaunchConfig> {
     defaults: { startMcUsd: num(d.startMcUsd) ?? 4_000, supplyTokens: num(d.supplyTokens) ?? 1_000_000_000 },
     limits: { startMcUsd: { min: num(mc.min) ?? 1_000, max: num(mc.max) ?? 1_000_000 }, name: num(l.name) ?? 32, symbol: num(l.symbol) ?? 10 },
     fee: fee && str(fee.wei) && str(fee.treasury) ? { wei: str(fee.wei) ?? '0', eth: str(fee.eth) ?? '0', treasury: str(fee.treasury) ?? '' } : null,
+    featured: str(r.featured) ?? null,
     feeShare: { protocolBps: num(fs.protocolBps) ?? 500, treasuryBps: num(fs.treasuryBps) ?? 0 },
     poolFeePercent: num(r.poolFeePercent) ?? 1,
   };

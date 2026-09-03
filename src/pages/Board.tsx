@@ -1,8 +1,8 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { StockLogo, TokenLogo } from '../components/TokenLogo';
-import { fetchBoard, fetchToken, type BoardRow } from '../lib/api';
+import { fetchBoard, fetchLaunchConfig, fetchToken, type BoardRow } from '../lib/api';
 
 type Row = BoardRow & { logo?: string; stockLogo?: string };
 import { ago, pct, usd } from '../lib/format';
@@ -46,7 +46,7 @@ function Curve() {
 }
 
 /** The newest Squidlor launch, as a ticket. Real data; nothing on it is a placeholder. */
-function FeaturedTicket({ row, pending }: { row?: Row; pending: boolean }) {
+function FeaturedTicket({ row, pending, pinned }: { row?: Row; pending: boolean; pinned?: boolean }) {
   const nav = useNavigate();
   if (pending || !row) {
     return (
@@ -66,7 +66,7 @@ function FeaturedTicket({ row, pending }: { row?: Row; pending: boolean }) {
       <div className="ticket-body">
         <div className="ticket-top">
           <span className="eyebrow">
-            <span className="live-dot" /> newest launch · {row.createdAt ? `${ago(row.createdAt)} ago` : 'on Base'}
+            <span className="live-dot" /> {pinned ? 'featured launch' : 'newest launch'} · {row.createdAt ? `${ago(row.createdAt)} ago` : 'on Base'}
           </span>
           <span className="ticket-chain">Base · 8453</span>
         </div>
@@ -179,6 +179,11 @@ export function BoardPage() {
   /** Both tabs are the same Squidlor-only list, ordered differently. */
   const [order, setOrder] = useState<'active' | 'new'>('active');
   const [stock, setStock] = useState<string | undefined>(undefined);
+  const [search, setSearch] = useState('');
+  const cfg = useQuery({ queryKey: ['launch-config'], queryFn: fetchLaunchConfig, staleTime: 5 * 60_000 });
+  /** A launch that appears after the first load gets a toast; the first load itself does not. */
+  const seen = useRef<Set<string> | null>(null);
+  const [toast, setToast] = useState<Row | undefined>(undefined);
   const nav = useNavigate();
   useEffect(() => {
     document.title = 'Squidlor Trade: tokens paired with stocks on Base';
@@ -219,14 +224,31 @@ export function BoardPage() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [q.data, spotKey]);
-  const rows = useMemo(
-    () =>
-      order === 'active'
-        ? [...all].sort((a, b) => (b.volume24hUsd ?? 0) - (a.volume24hUsd ?? 0) || (b.mcapUsd ?? 0) - (a.mcapUsd ?? 0))
-        : [...all].sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? '')),
-    [all, order],
-  );
+  const rows = useMemo(() => {
+    const needle = search.trim().toLowerCase();
+    const filtered = needle ? all.filter((r) => r.symbol.toLowerCase().includes(needle) || r.name.toLowerCase().includes(needle) || r.token.toLowerCase().startsWith(needle)) : all;
+    return order === 'active'
+      ? [...filtered].sort((a, b) => (b.volume24hUsd ?? 0) - (a.volume24hUsd ?? 0) || (b.mcapUsd ?? 0) - (a.mcapUsd ?? 0))
+      : [...filtered].sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''));
+  }, [all, order, search]);
   const newest = useMemo(() => [...all].sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))[0], [all]);
+  const pinnedAddr = cfg.data?.featured?.toLowerCase();
+  const featured = useMemo(() => (pinnedAddr ? all.find((r) => r.token.toLowerCase() === pinnedAddr) : undefined) ?? newest, [all, pinnedAddr, newest]);
+  useEffect(() => {
+    if (!q.data) return;
+    const now = new Set(q.data.rows.map((r) => r.token));
+    if (seen.current) {
+      const fresh = q.data.rows.filter((r) => !seen.current!.has(r.token)).sort((a, b) => (b.createdAt ?? '').localeCompare(a.createdAt ?? ''))[0];
+      if (fresh) {
+        setToast(fresh);
+        const t = setTimeout(() => setToast(undefined), 12_000);
+        seen.current = now;
+        return () => clearTimeout(t);
+      }
+    }
+    seen.current = now;
+    return undefined;
+  }, [q.data]);
   const stats = useMemo(() => {
     const vol = all.reduce((s, r) => s + (r.volume24hUsd ?? 0), 0);
     const mcap = all.reduce((s, r) => s + (r.mcapUsd ?? 0), 0);
@@ -284,7 +306,7 @@ export function BoardPage() {
           </dl>
         </div>
         <div className="hero-side reveal" style={{ animationDelay: '200ms' }}>
-          <FeaturedTicket {...(newest ? { row: newest } : {})} pending={q.isPending} />
+          <FeaturedTicket {...(featured ? { row: featured } : {})} pending={q.isPending} pinned={!!pinnedAddr && featured?.token.toLowerCase() === pinnedAddr} />
         </div>
       </section>
 
@@ -308,6 +330,19 @@ export function BoardPage() {
         </a>
       </section>
 
+      {toast ? (
+        <div className="toast reveal" role="status">
+          <span className="live-dot" />
+          New launch: <b>${toast.symbol}</b> paired with {toast.stock}c
+          <Link to={`/t/${toast.token}`} className="btn btn-sm btn-primary">
+            Open
+          </Link>
+          <button className="toast-x" onClick={() => setToast(undefined)} aria-label="Dismiss">
+            ✕
+          </button>
+        </div>
+      ) : null}
+
       <section id="board" className="board">
         <div className="board-head">
           <div>
@@ -324,6 +359,7 @@ export function BoardPage() {
           </div>
         </div>
         <div className="chips" role="group" aria-label="Filter by stock">
+          <input className="search" type="search" placeholder="Search name, ticker or address" value={search} onChange={(e) => setSearch(e.target.value)} aria-label="Search tokens" />
           <button className={`chip${stock === undefined ? ' on' : ''}`} onClick={() => setStock(undefined)}>
             all stocks
           </button>
@@ -365,7 +401,9 @@ export function BoardPage() {
                 : rows.map((r, i) => <Row key={r.token} r={r} i={i} maxVol={maxVol} onOpen={() => nav(`/t/${r.token}`)} />)}
             </tbody>
           </table>
-          {q.isSuccess && rows.length === 0 ? (
+          {q.isSuccess && rows.length === 0 && search.trim() ? (
+            <div className="empty">No launch matches "{search.trim()}".</div>
+          ) : q.isSuccess && rows.length === 0 ? (
             <div className="empty">
               No Squidlor launch paired with {stock ? `${stock}c` : 'a stock'} yet. <Link to={stock ? `/launch?stock=${stock}` : '/launch'}>Be the first</Link>.
             </div>

@@ -124,6 +124,15 @@ export function TokenPage() {
               </a>
               <Copy text={o.token.address} />
             </span>
+            <a
+              className="btn btn-ghost btn-sm"
+              href={askGeyser(`Set a price alert for $${sym} (${o.token.address}), the token paired with ${o.stock.symbol}: tell me when it moves 10% either way`)}
+              target="_blank"
+              rel="noreferrer"
+              title="Alerts are set through the chat desk and delivered there"
+            >
+              🔔 Price alert
+            </a>
             {isCreator ? (
               <button className="btn btn-ghost btn-sm edit-btn" onClick={() => setEditing(true)}>
                 ✎ Edit page

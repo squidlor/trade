@@ -2285,3 +2285,44 @@ a.step:hover {
     display: none;
   }
 }
+
+/* ── Search and toast ───────────────────────────────────────────────────────── */
+.search {
+  flex: 1 1 220px;
+  min-width: 180px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  background: var(--bg-input);
+  color: var(--ink);
+  font-size: 13px;
+  outline: none;
+  margin-right: 6px;
+}
+.search:focus {
+  border-color: var(--primary-soft);
+}
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(22px + var(--safe-b));
+  transform: translateX(-50%);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 16px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  background: rgba(18, 11, 34, 0.96);
+  box-shadow: 0 20px 50px -20px rgba(123, 77, 255, 0.7);
+  font-size: 13.5px;
+  white-space: nowrap;
+}
+.toast-x {
+  color: var(--ink-faint);
+  padding: 4px 6px;
+}
+.toast-x:hover {
+  color: var(--ink);
+}
