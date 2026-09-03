@@ -6,7 +6,7 @@
 #   sudo nginx -t && sudo systemctl reload nginx
 #
 # TLS comes last, once squidlor.trade resolves to this box:
-#   sudo certbot --nginx -d squidlor.trade
+#   sudo certbot --nginx -d squidlor.trade -d www.squidlor.trade
 # certbot rewrites this block in place (443 listener + 80 redirect). Do NOT point it at another
 # name's certificate as a shortcut: browsers refuse a mismatched cert outright.
 #
@@ -15,7 +15,7 @@
 # on :5030, the same process chat.squidlor.com/api talks to. Only /api/launchpad/* is used, but
 # the whole prefix is passed so a new endpoint needs no nginx change.
 server {
-    server_name squidlor.trade;
+    server_name squidlor.trade www.squidlor.trade;
     root /opt/trade/dist;
     index index.html;
     client_max_body_size 256k;
