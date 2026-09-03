@@ -3,9 +3,10 @@ import { describe, it } from 'node:test';
 import { amount, pct, tiny, usd } from './format.js';
 
 describe('tiny', () => {
-  it('collapses leading zeros into a subscript count', () => {
-    assert.equal(tiny(0.000004056546978), '0.0₅4056');
-    assert.equal(tiny(1.8e-8), '0.0₇18');
+  it('prints tiny prices as plain digits with four significant figures', () => {
+    assert.equal(tiny(0.000004056546978), '0.000004057');
+    assert.equal(tiny(1.8e-8), '0.000000018');
+    assert.equal(tiny(0.0004021), '0.0004021');
   });
   it('leaves ordinary decimals alone', () => {
     assert.equal(tiny(0.0134), '0.0134');
@@ -18,7 +19,7 @@ describe('usd', () => {
     assert.equal(usd(13_446_148.56), '$13.45M');
     assert.equal(usd(4056.55), '$4,056.55');
     assert.equal(usd(466_107.9), '$466.1k');
-    assert.equal(usd(0.000004056), '$0.0₅4056');
+    assert.equal(usd(0.000004056), '$0.000004056');
     assert.equal(usd(undefined), '–');
   });
 });

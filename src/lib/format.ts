@@ -14,20 +14,18 @@ export function usd(n: number | undefined, opts: { compact?: boolean } = {}): st
 }
 
 /**
- * Sub-cent prices without a wall of zeros: "0.0₆4057" means six zeros then 4057. The subscript
- * count is what every serious DEX UI does for launch-stage tokens, whose prices start around 1e-6.
+ * Sub-cent prices as plain digits: four significant figures after the leading zeros, so
+ * 0.000004021 reads as exactly that. (An earlier version compressed the zeros into a subscript
+ * count, which people read as a typo.) `toFixed` rather than `toPrecision`, which switches to
+ * exponent notation below 1e-7 and would print "4.021e-7" on a fresh launch.
  */
 export function tiny(n: number): string {
   if (n === 0) return '0';
-  if (Math.abs(n) >= 0.01) return n.toFixed(4);
-  const s = n.toFixed(20);
-  const m = /^0\.(0*)(\d+)$/.exec(s);
-  if (!m) return n.toPrecision(4);
-  const zeros = m[1]?.length ?? 0;
-  const digits = (m[2] ?? '').slice(0, 4).replace(/0+$/, '') || '0';
-  if (zeros < 3) return n.toPrecision(4).replace(/\.?0+$/, '');
-  const sub = String(zeros).replace(/\d/g, (d) => '₀₁₂₃₄₅₆₇₈₉'[Number(d)] ?? d);
-  return `0.0${sub}${digits}`;
+  if (!Number.isFinite(n)) return '–';
+  const abs = Math.abs(n);
+  if (abs >= 0.01) return n.toFixed(4).replace(/\.?0+$/, '');
+  const decimals = Math.min(18, -Math.floor(Math.log10(abs)) + 3);
+  return n.toFixed(decimals).replace(/0+$/, '');
 }
 
 export function amount(n: number | string | undefined, maxFrac = 4): string {

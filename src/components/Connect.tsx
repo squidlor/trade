@@ -93,25 +93,78 @@ export function ConnectModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+function WalletGlyph() {
+  return (
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+      <path d="M3 7.5A2.5 2.5 0 0 1 5.5 5h12A2.5 2.5 0 0 1 20 7.5V9" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+      <rect x="3" y="8" width="18" height="11" rx="2.5" stroke="currentColor" strokeWidth="1.8" />
+      <circle cx="16" cy="13.5" r="1.4" fill="currentColor" />
+    </svg>
+  );
+}
+
+/**
+ * Connected: an account pill that opens a small menu (copy, explorer, disconnect). Not connected:
+ * the one primary action on the page, so it is allowed to glow.
+ */
 export function ConnectButton() {
-  const { address, isConnected, connector } = useAccount();
+  const { address, isConnected, connector, chainId } = useAccount();
   const { disconnect } = useDisconnect();
   const [open, setOpen] = useState(false);
+  const [menu, setMenu] = useState(false);
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!menu) return;
+    const close = () => setMenu(false);
+    window.addEventListener('click', close);
+    return () => window.removeEventListener('click', close);
+  }, [menu]);
+
   if (isConnected && address) {
     return (
-      <span className="acct" title={`${address} via ${connector?.name ?? 'wallet'}`}>
-        <span className="ring" />
-        {short(address)}
-        <button onClick={() => disconnect()} aria-label="Disconnect wallet">
-          ✕
+      <span className="acct-wrap" onClick={(e) => e.stopPropagation()}>
+        <button className={`acct${menu ? ' open' : ''}`} onClick={() => setMenu((m) => !m)} aria-haspopup="menu" aria-expanded={menu} title={`${address} via ${connector?.name ?? 'wallet'}`}>
+          <span className="ring" />
+          <span className="acct-addr">{short(address)}</span>
+          <span className={`acct-net${chainId === 8453 ? '' : ' off'}`} aria-label={chainId === 8453 ? 'Base' : 'wrong network'} />
+          <span className="acct-caret">▾</span>
         </button>
+        {menu ? (
+          <div className="acct-menu" role="menu">
+            <div className="acct-menu-head">
+              <span className="ring lg" />
+              <div>
+                <b className="mono">{short(address, 8, 6)}</b>
+                <span>{connector?.name ?? 'wallet'} · {chainId === 8453 ? 'Base' : 'not on Base'}</span>
+              </div>
+            </div>
+            <button
+              role="menuitem"
+              onClick={() => {
+                void navigator.clipboard?.writeText(address).then(() => {
+                  setCopied(true);
+                  setTimeout(() => setCopied(false), 1200);
+                });
+              }}
+            >
+              {copied ? 'Copied' : 'Copy address'}
+            </button>
+            <a role="menuitem" href={`https://basescan.org/address/${address}`} target="_blank" rel="noreferrer">
+              View on Basescan ↗
+            </a>
+            <button role="menuitem" className="danger" onClick={() => (disconnect(), setMenu(false))}>
+              Disconnect
+            </button>
+          </div>
+        ) : null}
       </span>
     );
   }
   return (
     <>
-      <button className="btn btn-primary btn-sm" onClick={() => setOpen(true)}>
-        Connect wallet
+      <button className="connect-btn" onClick={() => setOpen(true)}>
+        <WalletGlyph />
+        <span>Connect wallet</span>
       </button>
       {open ? <ConnectModal onClose={() => setOpen(false)} /> : null}
     </>
