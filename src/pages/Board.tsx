@@ -277,7 +277,7 @@ export function BoardPage() {
         <a className="step" href={`${CHAT_URL}/?desk=geyser`} target="_blank" rel="noreferrer">
           <span className="step-n">01</span>
           <b>Launch</b>
-          <span>Name a token, pick a stock. The GEYSER desk deploys it for gas only. You keep 75% of every trading fee.</span>
+          <span>Name a token, pick a stock. The GEYSER desk deploys it for gas only, and the creator is paid a share of every trade forever.</span>
         </a>
         <div className="step">
           <span className="step-n">02</span>
