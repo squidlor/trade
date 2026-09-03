@@ -1,7 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { useAccount } from 'wagmi';
+import { EditProfile } from '../components/EditProfile';
 import { StockLogo, TokenLogo } from '../components/TokenLogo';
 import { PredictionCard } from '../components/PredictionCard';
 import { PriceChart } from '../components/PriceChart';
@@ -31,7 +32,9 @@ function Copy({ text }: { text: string }) {
 
 export function TokenPage() {
   const { key = '' } = useParams();
+  const [params, setParams] = useSearchParams();
   const { address } = useAccount();
+  const [editing, setEditing] = useState(false);
   const q = useQuery({
     queryKey: ['token', key, address ?? ''],
     queryFn: () => fetchToken(key, address),
@@ -43,6 +46,15 @@ export function TokenPage() {
   useEffect(() => {
     document.title = o ? `$${o.token.symbol} / ${o.stock.tokenSymbol} · Squidlor Trade` : 'Squidlor Trade';
   }, [o]);
+  const isCreator = !!(o?.launch.creator && address && o.launch.creator.toLowerCase() === address.toLowerCase());
+  // `/t/<token>?edit=1` (the launch page sends creators here) opens the editor once the page knows who they are.
+  useEffect(() => {
+    if (params.get('edit') && isCreator) {
+      setEditing(true);
+      params.delete('edit');
+      setParams(params, { replace: true });
+    }
+  }, [params, isCreator, setParams]);
 
   if (q.isPending) {
     return (
@@ -111,7 +123,13 @@ export function TokenPage() {
               </a>
               <Copy text={o.token.address} />
             </span>
+            {isCreator ? (
+              <button className="btn btn-ghost btn-sm edit-btn" onClick={() => setEditing(true)}>
+                ✎ Edit page
+              </button>
+            ) : null}
           </div>
+          {o.profile?.tagline ? <p className="tagline">{o.profile.tagline}</p> : null}
         </div>
         <div className="price-block">
           <div className="big">{price !== undefined ? usd(price, { compact: false }) : '–'}</div>
@@ -164,6 +182,51 @@ export function TokenPage() {
               <small>price change</small>
             </div>
           </div>
+
+          {o.profile && (o.profile.description || o.profile.website || o.profile.x || o.profile.telegram) ? (
+            <section className="card" aria-label="About">
+              <div className="card-head">
+                <span className="card-title">About ${sym}</span>
+                <span className="faint" style={{ fontSize: 12 }}>
+                  by the creator
+                </span>
+              </div>
+              <div className="about-hero">
+                <div style={{ minWidth: 0 }}>
+                  {o.profile.description ? <p>{o.profile.description}</p> : null}
+                  <div className="about-links">
+                    {o.profile.website ? (
+                      <a href={o.profile.website} target="_blank" rel="noreferrer nofollow">
+                        🌐 {o.profile.website.replace(/^https:\/\//, '').replace(/\/$/, '')}
+                      </a>
+                    ) : null}
+                    {o.profile.x ? (
+                      <a href={`https://x.com/${o.profile.x}`} target="_blank" rel="noreferrer nofollow">
+                        𝕏 @{o.profile.x}
+                      </a>
+                    ) : null}
+                    {o.profile.telegram ? (
+                      <a href={`https://t.me/${o.profile.telegram}`} target="_blank" rel="noreferrer nofollow">
+                        ✈ {o.profile.telegram}
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
+              </div>
+            </section>
+          ) : isCreator ? (
+            <section className="card" aria-label="About">
+              <div className="about-hero">
+                <div>
+                  <div className="card-title">Tell people about ${sym}</div>
+                  <p>Add an image, a line, a description and your links. Only your wallet can edit this page.</p>
+                  <button className="btn btn-primary btn-sm" onClick={() => setEditing(true)}>
+                    Set up the page
+                  </button>
+                </div>
+              </div>
+            </section>
+          ) : null}
 
           <TradesFeed tokenKey={o.token.address} symbol={sym} stockSymbol={o.stock.tokenSymbol} />
 
@@ -239,6 +302,7 @@ export function TokenPage() {
         </div>
 
         <div className="col">
+          {editing ? <EditProfile overview={o} onClose={() => setEditing(false)} /> : null}
           <div className="sticky col">
             <TradePanel overview={o} />
             <PredictionCard stockSymbol={o.stock.symbol} stockName={o.stock.name} stockPriceUsd={o.stock.priceUsd} tokenSymbol={sym} />

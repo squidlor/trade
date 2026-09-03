@@ -2045,3 +2045,113 @@ a.step:hover {
 .stock-opt > div {
   min-width: 0;
 }
+
+/* ── Creator editor ─────────────────────────────────────────────────────────── */
+.modal.editor {
+  width: min(560px, 100%);
+  max-height: calc(100dvh - 40px);
+  overflow-y: auto;
+}
+.editor-image {
+  display: flex;
+  gap: 16px;
+  align-items: center;
+  padding: 14px;
+  border: 1px dashed var(--line-strong);
+  border-radius: 14px;
+  margin-bottom: 18px;
+}
+.editor-image .avatar {
+  border-radius: 20px;
+}
+.editor-image-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.editor-image-actions small {
+  flex-basis: 100%;
+  font-size: 11.5px;
+}
+.editor .fld input,
+.editor .fld textarea {
+  font-family: var(--font-body);
+  font-size: 15px;
+  font-weight: 400;
+  padding: 11px 13px;
+}
+.editor .fld textarea {
+  width: 100%;
+  background: var(--bg-input);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  color: var(--ink);
+  outline: none;
+  resize: vertical;
+  line-height: 1.5;
+}
+.editor .fld textarea:focus {
+  border-color: var(--primary-soft);
+}
+.editor .fld {
+  margin-bottom: 14px;
+}
+.editor-links {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 10px;
+}
+.editor-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+}
+@media (max-width: 560px) {
+  .editor-links {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* creator's about card on the token page */
+.about-hero {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+.about-hero p {
+  margin: 0 0 10px;
+  color: var(--ink-dim);
+  line-height: 1.6;
+  white-space: pre-wrap;
+}
+.about-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.about-links a {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 1px solid var(--line);
+  font-size: 12.5px;
+  color: var(--ink);
+}
+.about-links a:hover {
+  border-color: var(--primary-soft);
+}
+.tagline {
+  margin: 4px 0 0;
+  color: var(--ink-dim);
+  font-size: 15px;
+}
+.edit-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}

@@ -172,8 +172,11 @@ export function LaunchPage() {
           {r.name} now trades against {r.stock}c on Uniswap v4. The pool exists, the price is set, and every trade pays you your share of the fee.
         </p>
         <div className="hero-actions" style={{ justifyContent: 'center' }}>
-          <Link className="btn btn-primary btn-lg" to={`/t/${r.token}`}>
-            Open the ${r.symbol} trade page →
+          <Link className="btn btn-primary btn-lg" to={`/t/${r.token}?edit=1`}>
+            Add an image and description →
+          </Link>
+          <Link className="btn btn-ghost btn-lg" to={`/t/${r.token}`}>
+            Open the trade page
           </Link>
           <a className="btn btn-ghost btn-lg" href={txUrl(phase.hash)} target="_blank" rel="noreferrer">
             Basescan ↗

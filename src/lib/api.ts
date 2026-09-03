@@ -164,6 +164,7 @@ export interface TokenOverview {
   spot?: { priceInStock: number; priceUsd: number; mcapUsd?: number };
   market?: IndexedPool;
   wallet?: { address: string; tokenBalance: string; stockBalance: string };
+  profile?: Profile;
   candidates?: number;
   pickedBy?: string;
   links: Links;
@@ -255,6 +256,7 @@ export async function fetchToken(key: string, wallet?: string): Promise<TokenOve
     ...(wallet_ && str(wallet_.address)
       ? { wallet: { address: str(wallet_.address) ?? '', tokenBalance: str(wallet_.tokenBalance) ?? '0', stockBalance: str(wallet_.stockBalance) ?? '0' } }
       : {}),
+    ...optional('profile', parseProfile(r.profile)),
     ...optional('candidates', num(r.candidates)),
     ...optional('pickedBy', str(r.pickedBy)),
     links: parseLinks(r.links),
@@ -505,4 +507,48 @@ export async function postConfirm(txHash: string, feeTxHash?: string): Promise<L
   const b = await getJson('/api/launchpad/confirm', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ txHash, ...(feeTxHash ? { feeTxHash } : {}) }) });
   const r = isRecord(b) ? b : {};
   return { token: need(str(r.token), 'token'), symbol: str(r.symbol) ?? '', name: str(r.name) ?? '', stock: str(r.stock) ?? '', links: parseLinks(r.links) };
+}
+
+// ── Creator profile ─────────────────────────────────────────────────────────────────────────────
+
+export interface Profile {
+  tagline: string;
+  description: string;
+  website: string;
+  x: string;
+  telegram: string;
+  image?: string;
+  updatedAt: string;
+}
+
+export function parseProfile(v: unknown): Profile | undefined {
+  if (!isRecord(v)) return undefined;
+  return {
+    tagline: str(v.tagline) ?? '',
+    description: str(v.description) ?? '',
+    website: str(v.website) ?? '',
+    x: str(v.x) ?? '',
+    telegram: str(v.telegram) ?? '',
+    ...optional('image', str(v.image)),
+    updatedAt: str(v.updatedAt) ?? '',
+  };
+}
+
+const authed = (token: string): Record<string, string> => ({ 'content-type': 'application/json', authorization: `Wallet ${token}` });
+
+export async function putProfile(tokenAddress: string, authToken: string, body: Omit<Profile, 'image' | 'updatedAt'>): Promise<Profile> {
+  const b = await getJson(`/api/launchpad/token/${tokenAddress}/profile`, { method: 'PUT', headers: authed(authToken), body: JSON.stringify(body) });
+  const p = parseProfile(b);
+  if (!p) throw new ApiError('Malformed profile response.', 502);
+  return p;
+}
+
+export async function putImage(tokenAddress: string, authToken: string, dataUrl: string): Promise<{ image: string }> {
+  const b = await getJson(`/api/launchpad/token/${tokenAddress}/image`, { method: 'PUT', headers: authed(authToken), body: JSON.stringify({ dataUrl }) });
+  const r = isRecord(b) ? b : {};
+  return { image: need(str(r.image), 'image') };
+}
+
+export async function deleteImage(tokenAddress: string, authToken: string): Promise<void> {
+  await getJson(`/api/launchpad/token/${tokenAddress}/image`, { method: 'DELETE', headers: authed(authToken) });
 }
