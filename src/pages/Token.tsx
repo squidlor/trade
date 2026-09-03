@@ -41,7 +41,7 @@ export function TokenPage() {
   const o = q.data;
 
   useEffect(() => {
-    document.title = o ? `$${o.token.symbol} / ${o.stock.tokenSymbol} — Squidlor Trade` : 'Squidlor Trade';
+    document.title = o ? `$${o.token.symbol} / ${o.stock.tokenSymbol} · Squidlor Trade` : 'Squidlor Trade';
   }, [o]);
 
   if (q.isPending) {
@@ -103,7 +103,7 @@ export function TokenPage() {
             <span className="pair">
               paired with <b>{o.stock.tokenSymbol}</b> · {o.stock.name}
             </span>
-            {o.launch.launchedHere ? <span className="tag good">launched on Squidlor</span> : null}
+            {o.launch.launchedHere ? <span className="tag good">launched on Squidlor</span> : <span className="tag warn">not launched on Squidlor</span>}
             {o.pool?.feePercent !== undefined ? <span className="tag">{o.pool.feePercent}% pool fee</span> : o.pool?.dynamicFee ? <span className="tag">dynamic fee</span> : null}
             <span className="addr">
               <a href={tokenUrl(o.token.address)} target="_blank" rel="noreferrer">
@@ -114,7 +114,7 @@ export function TokenPage() {
           </div>
         </div>
         <div className="price-block">
-          <div className="big">{price !== undefined ? usd(price, { compact: false }) : '—'}</div>
+          <div className="big">{price !== undefined ? usd(price, { compact: false }) : '–'}</div>
           <div className="sub">
             {change !== undefined ? <span className={change >= 0 ? 'up' : 'down'}>{pct(change)} 24h</span> : <span className="faint">no 24h print yet</span>}
             {priceInStock !== undefined ? (
@@ -128,7 +128,7 @@ export function TokenPage() {
 
       {o.candidates && o.candidates > 1 ? (
         <div className="notice info">
-          {o.candidates} tokens share the ticker ${sym}. This is the one {o.pickedBy ?? 'chosen'} — the address above is what trades. Open another by
+          {o.candidates} tokens share the ticker ${sym}. This is the one {o.pickedBy ?? 'chosen'}. The address above is what trades. Open another by
           its address if this is not it.
         </div>
       ) : null}

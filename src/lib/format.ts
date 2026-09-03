@@ -1,7 +1,7 @@
 /** Number and time formatting. One place, so every panel prints a dollar the same way. */
 
 export function usd(n: number | undefined, opts: { compact?: boolean } = {}): string {
-  if (n === undefined || !Number.isFinite(n)) return '—';
+  if (n === undefined || !Number.isFinite(n)) return '–';
   const abs = Math.abs(n);
   if (opts.compact !== false) {
     if (abs >= 1_000_000_000) return `$${(n / 1_000_000_000).toFixed(2)}B`;
@@ -31,9 +31,9 @@ export function tiny(n: number): string {
 }
 
 export function amount(n: number | string | undefined, maxFrac = 4): string {
-  if (n === undefined) return '—';
+  if (n === undefined) return '–';
   const v = typeof n === 'string' ? Number(n) : n;
-  if (!Number.isFinite(v)) return '—';
+  if (!Number.isFinite(v)) return '–';
   const abs = Math.abs(v);
   if (abs >= 1_000_000_000) return `${(v / 1_000_000_000).toFixed(2)}B`;
   if (abs >= 1_000_000) return `${(v / 1_000_000).toFixed(2)}M`;
@@ -44,12 +44,12 @@ export function amount(n: number | string | undefined, maxFrac = 4): string {
 }
 
 export function pct(n: number | undefined, signed = true): string {
-  if (n === undefined || !Number.isFinite(n)) return '—';
+  if (n === undefined || !Number.isFinite(n)) return '–';
   const s = n.toFixed(Math.abs(n) >= 100 ? 0 : Math.abs(n) >= 10 ? 1 : 2);
   return `${signed && n > 0 ? '+' : ''}${s}%`;
 }
 
-export const short = (a: string | undefined, head = 6, tail = 4): string => (a ? `${a.slice(0, head)}…${a.slice(-tail)}` : '—');
+export const short = (a: string | undefined, head = 6, tail = 4): string => (a ? `${a.slice(0, head)}…${a.slice(-tail)}` : '–');
 
 export function ago(iso: string | number | undefined): string {
   if (iso === undefined) return '';
@@ -63,7 +63,7 @@ export function ago(iso: string | number | undefined): string {
 }
 
 export function dateTime(iso: string | undefined): string {
-  if (!iso) return '—';
+  if (!iso) return '–';
   const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? '—' : d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+  return Number.isNaN(d.getTime()) ? '–' : d.toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
 }

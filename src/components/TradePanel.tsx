@@ -268,11 +268,11 @@ export function TradePanel({ overview }: { overview: TokenOverview }) {
               </div>
               <div className="quote-row">
                 <span>Price</span>
-                <b>{quote.priceUsdPerToken !== undefined ? `${usd(quote.priceUsdPerToken, { compact: false })} / ${sym}` : '—'}</b>
+                <b>{quote.priceUsdPerToken !== undefined ? `${usd(quote.priceUsdPerToken, { compact: false })} / ${sym}` : '–'}</b>
               </div>
               <div className="quote-row">
                 <span>Pool fee</span>
-                <b>{quote.dynamicFee ? 'dynamic' : quote.feePercent !== undefined ? `${quote.feePercent}%` : '—'}</b>
+                <b>{quote.dynamicFee ? 'dynamic' : quote.feePercent !== undefined ? `${quote.feePercent}%` : '–'}</b>
               </div>
               <div className="quote-row">
                 <span>Signatures</span>

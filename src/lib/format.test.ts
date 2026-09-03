@@ -19,7 +19,7 @@ describe('usd', () => {
     assert.equal(usd(4056.55), '$4,056.55');
     assert.equal(usd(466_107.9), '$466.1k');
     assert.equal(usd(0.000004056), '$0.0₅4056');
-    assert.equal(usd(undefined), '—');
+    assert.equal(usd(undefined), '–');
   });
 });
 
@@ -30,6 +30,6 @@ describe('amount and pct', () => {
     assert.equal(amount(1.36243266), '1.3624');
     assert.equal(pct(3.07), '+3.07%');
     assert.equal(pct(-14.2), '-14.2%');
-    assert.equal(pct(undefined), '—');
+    assert.equal(pct(undefined), '–');
   });
 });

@@ -2,7 +2,7 @@
  * The chat server's launchpad API, typed. These shapes mirror `oracle-chat/server/src/trade-api.ts`
  * and `launchtrade.ts`; the server is the source of truth and this file follows it.
  *
- * Every response is parsed at this boundary — shape-checked, never cast — so a field the server
+ * Every response is parsed at this boundary (shape-checked, never cast), so a field the server
  * stops sending becomes a thrown error here rather than `undefined` three components deep.
  */
 
@@ -64,7 +64,7 @@ export interface BoardRow {
   links: Links;
 }
 
-export type BoardScope = 'active' | 'new';
+export type BoardScope = 'active' | 'new' | 'squidlor';
 
 export interface Board {
   label: string;

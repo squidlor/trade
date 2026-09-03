@@ -15,7 +15,7 @@ export const launchOnChat = (stock?: string): string =>
 
 /**
  * The prediction market's create page. Markets settle from an oracle, and there is one for the
- * STOCK, not for a launched token — so the card on a token page offers a market on its stock.
+ * STOCK, not for a launched token, so the card on a token page offers a market on its stock.
  * `symbol` is a hint the create form may read; the page works without it.
  */
 export const createMarket = (stockSymbol: string): string => `${MARKETS_URL}/quest/create?symbol=${encodeURIComponent(stockSymbol)}&ref=trade`;

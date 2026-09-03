@@ -5,15 +5,6 @@ import { CHAIN } from '../lib/wagmi';
 import { CHAT_URL, MARKETS_URL } from '../lib/links';
 import { ConnectButton } from './Connect';
 
-function Mark() {
-  return (
-    <svg viewBox="0 0 64 64" aria-hidden="true">
-      <path d="M14 42 L26 28 L34 36 L50 18" fill="none" stroke="#fff" strokeWidth="7" strokeLinecap="round" strokeLinejoin="round" />
-      <circle cx="50" cy="18" r="6" fill="#fff" />
-    </svg>
-  );
-}
-
 /**
  * The network pill: Base when the wallet is on Base, an amber warning with a one-click switch
  * when it is not. Shown only while connected; nothing to say before that.
@@ -42,12 +33,11 @@ export function Shell({ children }: { children: ReactNode }) {
       <header className="topbar">
         <div className="topbar-in">
           <Link to="/" className="brand" aria-label="Squidlor Trade home">
-            <span className="brand-mark">
-              <Mark />
-            </span>
-            <span>
+            {/* The deck's mark, same file the chat uses: a transparent PNG that needs no tile behind it. */}
+            <img className="brand-mark" src="/squidlor-mark.png" alt="" width={32} height={32} />
+            <span className="brand-text">
               <span className="brand-name">Squidlor</span>
-              <span className="brand-sub">trade</span>
+              <span className="brand-sub">Trade</span>
             </span>
           </Link>
           <nav className="nav" aria-label="Primary">

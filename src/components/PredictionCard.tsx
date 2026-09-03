@@ -3,7 +3,7 @@ import { usd } from '../lib/format';
 
 /**
  * The bridge to the prediction market. A market needs an oracle to settle, and Squidlor's feeds
- * price the STOCK, not a token launched an hour ago — so the card offers a market on the stock the
+ * price the STOCK, not a token launched an hour ago, so the card offers a market on the stock the
  * token trades against, which is also the thing every holder of the token is implicitly betting on.
  * The example strike is a round number a little above spot, so the question reads as a real one.
  */
