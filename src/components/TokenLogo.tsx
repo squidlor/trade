@@ -18,7 +18,7 @@ export function TokenLogo({ src, symbol, address, large, size }: { src?: string 
  * the monogram the last.
  */
 export function StockLogo({ src, symbol, size = 16 }: { src?: string | undefined; symbol: string; size?: number }) {
-  const local = `/stocks/${symbol.toUpperCase().replace(/C$/, (m) => (['NVDA', 'TSLA', 'AAPL', 'GOOGL', 'AMZN', 'MSFT', 'META', 'COIN', 'CRCL', 'INTC', 'MSTR', 'SNDK', 'SPCX'].includes(symbol.toUpperCase()) ? m : ''))}.png`;
+  const local = `/stocks/${symbol.toUpperCase()}.png`;
   const chain = [local, ...(src ? [src] : [])];
   const [i, setI] = useState(0);
   const current = chain[i];
