@@ -366,13 +366,27 @@ export function TradePanel({ overview }: { overview: TokenOverview }) {
       </div>
 
       {isConnected ? (
-        <div className="balances">
-          <span>
-            {stockSym} <b>{fmtAmount(stockBal, 6)}</b>
-          </span>
-          <span>
-            ${sym} <b>{fmtAmount(tokenBal)}</b>
-          </span>
+        <div className="position">
+          <div className="position-row">
+            <span>Your ${sym}</span>
+            <b>
+              {fmtAmount(tokenBal)}
+              {spot && tokenBal > 0 ? <span className="dim"> · {usd(tokenBal * spot)}</span> : null}
+            </b>
+          </div>
+          {tokenBal > 0 && overview.token.totalSupply ? (
+            <div className="position-row">
+              <span>Share of supply</span>
+              <b>{((tokenBal / overview.token.totalSupply) * 100).toFixed(3)}%</b>
+            </div>
+          ) : null}
+          <div className="position-row">
+            <span>Your {stockSym}</span>
+            <b>
+              {fmtAmount(stockBal, 6)}
+              {stockBal > 0 ? <span className="dim"> · {usd(stockBal * overview.stock.priceUsd)}</span> : null}
+            </b>
+          </div>
         </div>
       ) : null}
 

@@ -613,3 +613,35 @@ export async function fetchCreator(wallet: string): Promise<CreatorSummary> {
     : [];
   return { wallet: str(r.wallet) ?? wallet, isTreasury: bool(r.isTreasury), launches, totals: { claimableUsd: num(totals.claimableUsd) ?? 0, launches: num(totals.launches) ?? launches.length } };
 }
+
+// ── Holders ─────────────────────────────────────────────────────────────────────────────────────
+
+export interface Holders {
+  count: number;
+  transfers: number;
+  inPoolPercent?: number;
+  top: { address: string; balance: string; percent: number; isCreator: boolean }[];
+  asOfBlock: number;
+  updatedAt: string;
+  catchingUp: boolean;
+}
+
+export async function fetchHolders(key: string): Promise<Holders> {
+  const b = await getJson(`/api/launchpad/token/${encodeURIComponent(key)}/holders`);
+  const r = isRecord(b) ? b : {};
+  return {
+    count: num(r.count) ?? 0,
+    transfers: num(r.transfers) ?? 0,
+    ...optional('inPoolPercent', num(r.inPoolPercent)),
+    top: Array.isArray(r.top)
+      ? r.top.flatMap((t) => {
+          if (!isRecord(t)) return [];
+          const address = str(t.address);
+          return address ? [{ address, balance: str(t.balance) ?? '0', percent: num(t.percent) ?? 0, isCreator: bool(t.isCreator) }] : [];
+        })
+      : [],
+    asOfBlock: num(r.asOfBlock) ?? 0,
+    updatedAt: str(r.updatedAt) ?? '',
+    catchingUp: bool(r.catchingUp),
+  };
+}

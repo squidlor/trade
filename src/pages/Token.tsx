@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { useAccount } from 'wagmi';
 import { EditProfile } from '../components/EditProfile';
+import { HoldersCard } from '../components/Holders';
 import { StockLogo, TokenLogo } from '../components/TokenLogo';
 import { PredictionCard } from '../components/PredictionCard';
 import { PriceChart } from '../components/PriceChart';
@@ -227,6 +228,8 @@ export function TokenPage() {
               </div>
             </section>
           ) : null}
+
+          <HoldersCard tokenKey={o.token.address} symbol={sym} enabled={o.launch.launchedHere} />
 
           <TradesFeed tokenKey={o.token.address} symbol={sym} stockSymbol={o.stock.tokenSymbol} />
 
