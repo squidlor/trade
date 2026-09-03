@@ -407,3 +407,100 @@ export async function postQuote(req: QuoteRequest): Promise<Quote> {
     at: Date.now(),
   };
 }
+
+// ── Launching ───────────────────────────────────────────────────────────────────────────────────
+
+export interface LaunchConfig {
+  stocks: { symbol: string; tokenSymbol: string; name: string; address: string }[];
+  defaults: { startMcUsd: number; supplyTokens: number };
+  limits: { startMcUsd: { min: number; max: number }; name: number; symbol: number };
+  /** null = launching is free. */
+  fee: { wei: string; eth: string; treasury: string } | null;
+  feeShare: { protocolBps: number; treasuryBps: number };
+  poolFeePercent: number;
+}
+
+export async function fetchLaunchConfig(): Promise<LaunchConfig> {
+  const b = await getJson('/api/launchpad/config');
+  const r = isRecord(b) ? b : {};
+  const fee = isRecord(r.fee) ? r.fee : undefined;
+  const d = isRecord(r.defaults) ? r.defaults : {};
+  const l = isRecord(r.limits) ? r.limits : {};
+  const mc = isRecord(l.startMcUsd) ? l.startMcUsd : {};
+  const fs = isRecord(r.feeShare) ? r.feeShare : {};
+  return {
+    stocks: Array.isArray(r.stocks)
+      ? r.stocks.flatMap((x) => {
+          if (!isRecord(x)) return [];
+          const symbol = str(x.symbol), address = str(x.address);
+          return symbol && address ? [{ symbol, tokenSymbol: str(x.tokenSymbol) ?? `${symbol}c`, name: str(x.name) ?? symbol, address }] : [];
+        })
+      : [],
+    defaults: { startMcUsd: num(d.startMcUsd) ?? 4_000, supplyTokens: num(d.supplyTokens) ?? 1_000_000_000 },
+    limits: { startMcUsd: { min: num(mc.min) ?? 1_000, max: num(mc.max) ?? 1_000_000 }, name: num(l.name) ?? 32, symbol: num(l.symbol) ?? 10 },
+    fee: fee && str(fee.wei) && str(fee.treasury) ? { wei: str(fee.wei) ?? '0', eth: str(fee.eth) ?? '0', treasury: str(fee.treasury) ?? '' } : null,
+    feeShare: { protocolBps: num(fs.protocolBps) ?? 500, treasuryBps: num(fs.treasuryBps) ?? 0 },
+    poolFeePercent: num(r.poolFeePercent) ?? 1,
+  };
+}
+
+export interface PreparedLaunch {
+  transaction: { from: string; to: string; value: string; data: string; gasLimit?: number };
+  token: { address: string; name: string; symbol: string; supplyTokens: number };
+  stock: { symbol: string; tokenSymbol: string; address: string; priceUsd: number };
+  pool: { feePips: number };
+  curves: { startMcUsd: number; endMcUsd: number | 'max'; supplyShare: number }[];
+  fees: { beneficiary: string; shareBps: number; role: 'protocol' | 'treasury' | 'creator' }[];
+  links: Links;
+}
+
+export async function postPrepare(body: { creator: string; name: string; symbol: string; stock: string; startMcUsd?: number; feeTxHash?: string }): Promise<PreparedLaunch> {
+  const b = await getJson('/api/launchpad/prepare', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+  const r = isRecord(b) ? b : {};
+  const tx = isRecord(r.transaction) ? r.transaction : {};
+  const token = isRecord(r.token) ? r.token : {};
+  const stock = isRecord(r.stock) ? r.stock : {};
+  const pool = isRecord(r.pool) ? r.pool : {};
+  return {
+    transaction: {
+      from: need(str(tx.from), 'transaction.from'),
+      to: need(str(tx.to), 'transaction.to'),
+      value: str(tx.value) ?? '0',
+      data: need(str(tx.data), 'transaction.data'),
+      ...optional('gasLimit', num(tx.gasLimit)),
+    },
+    token: { address: str(token.address) ?? '', name: str(token.name) ?? '', symbol: str(token.symbol) ?? '', supplyTokens: num(token.supplyTokens) ?? 0 },
+    stock: { symbol: str(stock.symbol) ?? '', tokenSymbol: str(stock.tokenSymbol) ?? '', address: str(stock.address) ?? '', priceUsd: num(stock.priceUsd) ?? 0 },
+    pool: { feePips: num(pool.feePips) ?? 10_000 },
+    curves: Array.isArray(r.curves)
+      ? r.curves.flatMap((c) => {
+          if (!isRecord(c)) return [];
+          const start = num(c.startMcUsd), share = num(c.supplyShare);
+          if (start === undefined || share === undefined) return [];
+          return [{ startMcUsd: start, endMcUsd: c.endMcUsd === 'max' ? ('max' as const) : (num(c.endMcUsd) ?? ('max' as const)), supplyShare: share }];
+        })
+      : [],
+    fees: Array.isArray(r.fees)
+      ? r.fees.flatMap((f) => {
+          if (!isRecord(f)) return [];
+          const role = f.role === 'protocol' || f.role === 'treasury' ? f.role : 'creator';
+          return [{ beneficiary: str(f.beneficiary) ?? '', shareBps: num(f.shareBps) ?? 0, role }];
+        })
+      : [],
+    links: parseLinks(r.links),
+  };
+}
+
+export interface LaunchRecord {
+  token: string;
+  symbol: string;
+  name: string;
+  stock: string;
+  links: Links;
+}
+
+export async function postConfirm(txHash: string, feeTxHash?: string): Promise<LaunchRecord> {
+  const b = await getJson('/api/launchpad/confirm', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ txHash, ...(feeTxHash ? { feeTxHash } : {}) }) });
+  const r = isRecord(b) ? b : {};
+  return { token: need(str(r.token), 'token'), symbol: str(r.symbol) ?? '', name: str(r.name) ?? '', stock: str(r.stock) ?? '', links: parseLinks(r.links) };
+}

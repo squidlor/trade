@@ -4,7 +4,7 @@ import { Link, useNavigate } from 'react-router';
 import { Avatar } from '../components/Avatar';
 import { fetchBoard, fetchToken, type BoardRow } from '../lib/api';
 import { ago, pct, usd } from '../lib/format';
-import { CHAT_URL, MARKETS_URL, launchOnChat } from '../lib/links';
+import { MARKETS_URL } from '../lib/links';
 
 /** Coinbase's B20 stocks on Base, in the order the desk lists them. The chips; the API validates. */
 const STOCKS = ['NVDA', 'TSLA', 'AAPL', 'GOOGL', 'AMZN', 'MSFT', 'META', 'COIN', 'CRCL', 'INTC', 'MSTR', 'SNDK', 'SPCX'];
@@ -98,9 +98,9 @@ function FeaturedTicket({ row, pending }: { row?: BoardRow; pending: boolean }) 
           <Link className="btn btn-primary" to={`/t/${row.token}`} onClick={(e) => e.stopPropagation()}>
             Trade ${row.symbol}
           </Link>
-          <a className="btn btn-ghost" href={launchOnChat(row.stock)} target="_blank" rel="noreferrer" onClick={(e) => e.stopPropagation()}>
-            Launch yours ↗
-          </a>
+          <Link className="btn btn-ghost" to={`/launch?stock=${row.stock}`} onClick={(e) => e.stopPropagation()}>
+            Launch yours
+          </Link>
         </div>
       </div>
     </div>
@@ -237,9 +237,9 @@ export function BoardPage() {
             company, and sell back into the stock whenever you like.
           </p>
           <div className="hero-actions reveal" style={{ animationDelay: '240ms' }}>
-            <a className="btn btn-primary btn-lg" href={launchOnChat(stock)} target="_blank" rel="noreferrer">
-              Launch a token ↗
-            </a>
+            <Link className="btn btn-primary btn-lg" to={stock ? `/launch?stock=${stock}` : '/launch'}>
+              Launch a token
+            </Link>
             <button className="btn btn-ghost btn-lg" onClick={() => document.getElementById('board')?.scrollIntoView({ behavior: 'smooth' })}>
               See what is trading ↓
             </button>
@@ -274,11 +274,11 @@ export function BoardPage() {
       <Tape rows={all} />
 
       <section className="steps reveal" style={{ animationDelay: '380ms' }} aria-label="How it works">
-        <a className="step" href={`${CHAT_URL}/?desk=geyser`} target="_blank" rel="noreferrer">
+        <Link className="step" to="/launch">
           <span className="step-n">01</span>
           <b>Launch</b>
-          <span>Name a token, pick a stock. The GEYSER desk deploys it for gas only, and the creator is paid a share of every trade forever.</span>
-        </a>
+          <span>Name a token, pick a stock, set the opening market cap. Two signatures, and the creator is paid a share of every trade forever.</span>
+        </Link>
         <div className="step">
           <span className="step-n">02</span>
           <b>Trade</b>
@@ -350,11 +350,7 @@ export function BoardPage() {
           </table>
           {q.isSuccess && rows.length === 0 ? (
             <div className="empty">
-              No Squidlor launch paired with {stock ? `${stock}c` : 'a stock'} yet.{' '}
-              <a href={launchOnChat(stock)} target="_blank" rel="noreferrer">
-                Be the first
-              </a>
-              .
+              No Squidlor launch paired with {stock ? `${stock}c` : 'a stock'} yet. <Link to={stock ? `/launch?stock=${stock}` : '/launch'}>Be the first</Link>.
             </div>
           ) : null}
         </div>
