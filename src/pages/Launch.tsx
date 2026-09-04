@@ -206,10 +206,7 @@ export function LaunchPage() {
         <section className="launch-form reveal">
           <span className="eyebrow">Squidlor launchpad · Base</span>
           <h1>Launch a token priced in a stock.</h1>
-          <p className="dim">
-            Name it, pick the stock it trades against, choose where the price starts. The whole supply goes into a Uniswap v4 pool as one-sided
-            liquidity; nobody deposits anything, and you are paid a share of every trade.
-          </p>
+          <p className="dim">Name it, pick its stock, choose where the price starts. You are paid a share of every trade.</p>
 
           <label className="fld">
             <span>Name</span>
@@ -347,9 +344,6 @@ export function LaunchPage() {
                           : `Launch $${symbol}`}
                   </button>
                 )}
-              </div>
-              <div className="trade-foot">
-                You pay network gas on Base. Nothing is deposited into the pool. The token and its pool exist once the create transaction is mined.
               </div>
             </div>
           </div>

@@ -31,7 +31,7 @@ function Copy({ text }: { text: string }) {
 /** Where the US session is, as a pill. The token trades on Base regardless; this explains drift from the last print. */
 export function SessionPill({ session, label }: { session: 'regular' | 'pre' | 'after' | 'closed'; label: string }) {
   return (
-    <span className={`session-pill ${session}`} title="US equity session, New York time. The token itself trades on Base around the clock.">
+    <span className={`session-pill ${session}`} title="US equity session, New York time">
       <span className="dot" />
       {label}
     </span>
@@ -91,7 +91,7 @@ export function StockPage() {
       <div className="empty" style={{ paddingTop: 60 }}>
         <span className="eyebrow">{status === 400 ? 'unknown stock' : 'error'}</span>
         <h1 style={{ fontFamily: 'var(--font-display)', fontWeight: 600, margin: '10px 0' }}>{q.error?.message ?? 'Could not load this stock.'}</h1>
-        <p className="dim">Stock pages take one of the thirteen tokenized US stocks on Base, by ticker: /s/NVDA.</p>
+        <p className="dim">Try a ticker, like /s/NVDA.</p>
         <Link className="btn" to="/stocks">
           All stocks
         </Link>
@@ -135,7 +135,7 @@ export function StockPage() {
           <div className="sub">
             {s.change24hPct !== undefined ? <span className={s.change24hPct >= 0 ? 'up' : 'down'}>{pct(s.change24hPct)} 24h</span> : <span className="faint">{s.thin ? 'thin pool, no 24h figure' : 'no 24h print'}</span>}
             {ref !== undefined ? (
-              <span className="mono" title="Chainlink's B20 feed for this stock: the underlying share price times the token multiplier, holding the last print outside US hours.">
+              <span className="mono" title="Chainlink reference price">
                 ref {usd(ref, { compact: false })}
                 {drift !== undefined ? <span className={Math.abs(drift) < 1 ? 'faint' : drift > 0 ? 'up' : 'down'}> ({pct(drift)})</span> : null}
               </span>
@@ -143,8 +143,6 @@ export function StockPage() {
           </div>
         </div>
       </header>
-
-      <div className="notice info">{o.eligibility}</div>
 
       <div className="grid">
         <div className="col">
@@ -154,27 +152,24 @@ export function StockPage() {
             <div className="tile">
               <span className="eyebrow">On-chain market cap</span>
               <b>{usd(s.mcapUsd)}</b>
-              <small>tokens minted on Base</small>
             </div>
             <div className="tile">
               <span className="eyebrow">Volume 24h</span>
               <b>{usd(s.volume24hUsd)}</b>
-              <small>all Base DEX pools</small>
             </div>
             <div className="tile">
               <span className="eyebrow">Liquidity</span>
               <b>{usd(s.liquidityUsd)}</b>
-              <small>{s.pool ? `deepest: ${usd(s.pool.liquidityUsd)} on ${s.pool.dex.replace(/-base$/, '')}` : 'no pool indexed'}</small>
+              <small>{s.pool ? `deepest ${usd(s.pool.liquidityUsd)}` : '–'}</small>
             </div>
             <div className="tile">
               <span className="eyebrow">Reference price</span>
               <b>{ref !== undefined ? usd(ref, { compact: false }) : '–'}</b>
-              <small>{s.referenceUpdatedAt ? `Chainlink · ${ago(s.referenceUpdatedAt)} ago` : s.hasFeed ? 'Chainlink B20 feed' : 'no Chainlink feed yet'}</small>
+              <small>{s.referenceUpdatedAt ? `Chainlink · ${ago(s.referenceUpdatedAt)}` : s.hasFeed ? 'Chainlink' : '–'}</small>
             </div>
             <div className="tile">
               <span className="eyebrow">1h</span>
               <b className={s.change1hPct === undefined ? '' : s.change1hPct >= 0 ? 'up' : 'down'}>{pct(s.change1hPct)}</b>
-              <small>price change</small>
             </div>
           </div>
 
@@ -191,7 +186,7 @@ export function StockPage() {
               </div>
             ) : rows.length === 0 ? (
               <p className="dim" style={{ margin: 0, fontSize: 13.5 }}>
-                No Squidlor launch is priced in {s.tokenSymbol} yet. The first one sets the pace: its whole supply goes into a Uniswap v4 pool quoted in {s.tokenSymbol}, and every trade pays the creator.
+                Nothing is priced in {s.tokenSymbol} yet. Be the first.
               </p>
             ) : (
               <div className="paired-list">
@@ -226,10 +221,7 @@ export function StockPage() {
               <dt>Standard</dt>
               <dd>B20 · 8 decimals · Base (8453)</dd>
               <dt>Backing</dt>
-              <dd style={{ fontFamily: 'var(--font-body)', maxWidth: 440, textAlign: 'right' }}>
-                One token is one share of {s.name}, held by Coinbase's tokenization entity. Minting and redemption are for authorized participants; secondary trading on Base is open, subject to the
-                token's transfer policy.
-              </dd>
+              <dd>1 token = 1 {s.symbol} share</dd>
               {s.pool ? (
                 <>
                   <dt>Deepest pool</dt>
@@ -241,9 +233,7 @@ export function StockPage() {
               <dt>Supply on Base</dt>
               <dd>{s.mcapUsd !== undefined && price ? `${amount(s.mcapUsd / price)} ${s.tokenSymbol}` : '–'}</dd>
               <dt>Hours</dt>
-              <dd style={{ fontFamily: 'var(--font-body)', maxWidth: 440, textAlign: 'right' }}>
-                Trades on Base 24/7. Outside the US session the on-chain price is set by Base traders alone and can drift from the last NYSE print; the reference price above holds that print.
-              </dd>
+              <dd>Trades on Base 24/7</dd>
               <dt>Also on</dt>
               <dd>
                 <a href={s.links.uniswap} target="_blank" rel="noreferrer">
@@ -261,7 +251,7 @@ export function StockPage() {
         <div className="col">
           <div className="sticky col">
             <StockTradePanel overview={o} />
-            {s.hasFeed ? <PredictionCard stockSymbol={s.symbol} stockName={s.name} stockPriceUsd={price ?? ref ?? 0} tokenSymbol={s.tokenSymbol} /> : null}
+            {s.hasFeed ? <PredictionCard stockSymbol={s.symbol} stockPriceUsd={price ?? ref ?? 0} /> : null}
           </div>
         </div>
       </div>

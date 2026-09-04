@@ -60,7 +60,7 @@ export function Shell({ children }: { children: ReactNode }) {
       <main className="main">{children}</main>
       <footer className="footer">
         <div className="footer-in">
-          <span>Squidlor · tokens paired with tokenized stocks, on Base</span>
+          <span>Squidlor · Base</span>
           <a href={CHAT_URL} target="_blank" rel="noreferrer">
             Oracle chat
           </a>
@@ -70,9 +70,7 @@ export function Shell({ children }: { children: ReactNode }) {
           <a href="https://docs.squidlor.com" target="_blank" rel="noreferrer">
             Docs
           </a>
-          <span style={{ marginLeft: 'auto' }}>
-            Prices are DEX pool prints and on-chain reads, not oracle quotes. Trading tokens this new can lose all of what you put in.
-          </span>
+          <span style={{ marginLeft: 'auto' }}>Tokenized stocks are Reg S · not for US persons · trade at your own risk</span>
         </div>
       </footer>
     </div>

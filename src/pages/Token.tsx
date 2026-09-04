@@ -229,7 +229,7 @@ export function TokenPage() {
               <div className="about-hero">
                 <div>
                   <div className="card-title">Tell people about ${sym}</div>
-                  <p>Add an image, a line, a description and your links. Only your wallet can edit this page.</p>
+                  <p>Add an image, a line and your links.</p>
                   <button className="btn btn-primary btn-sm" onClick={() => setEditing(true)}>
                     Set up the page
                   </button>
@@ -294,11 +294,6 @@ export function TokenPage() {
                   </dd>
                 </>
               ) : null}
-              <dt>Mechanics</dt>
-              <dd style={{ fontFamily: 'var(--font-body)', maxWidth: 420, textAlign: 'right' }}>
-                Whole supply seeded as one-sided liquidity, priced in {o.stock.tokenSymbol}. Not pegged: if {o.stock.symbol} rises 10% with no trades, the
-                dollar price rises 10% too.
-              </dd>
               <dt>Also on</dt>
               <dd>
                 <a href={o.links.uniswap} target="_blank" rel="noreferrer">
@@ -317,7 +312,7 @@ export function TokenPage() {
           {editing ? <EditProfile overview={o} onClose={() => setEditing(false)} /> : null}
           <div className="sticky col">
             <TradePanel overview={o} />
-            <PredictionCard stockSymbol={o.stock.symbol} stockName={o.stock.name} stockPriceUsd={o.stock.priceUsd} tokenSymbol={sym} />
+            <PredictionCard stockSymbol={o.stock.symbol} stockPriceUsd={o.stock.priceUsd} />
           </div>
         </div>
       </div>

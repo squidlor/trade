@@ -274,8 +274,7 @@ export function BoardPage() {
             <em>in stocks</em>, not ETH.
           </h1>
           <p className="reveal" style={{ animationDelay: '160ms' }}>
-            Every token here was launched on Squidlor against a tokenized US stock. Pay in NVDAc, TSLAc or AAPLc, hold a ticker that moves with the
-            company, and sell back into the stock whenever you like.
+            Buy tokenized US stocks on Base, and the tokens launched against them.
           </p>
           <div className="hero-actions reveal" style={{ animationDelay: '240ms' }}>
             <Link className="btn btn-primary btn-lg" to={stock ? `/launch?stock=${stock}` : '/launch'}>
@@ -322,17 +321,17 @@ export function BoardPage() {
         <Link className="step" to="/launch">
           <span className="step-n">01</span>
           <b>Launch</b>
-          <span>Name a token, pick a stock, set the opening market cap. Two signatures, and the creator is paid a share of every trade forever.</span>
+          <span>Pick a stock, name your token, set the opening market cap.</span>
         </Link>
         <Link className="step" to="/stocks">
           <span className="step-n">02</span>
           <b>Trade</b>
-          <span>Buy the stock token itself with ETH or USDC, then buy launches with it and sell back. Quotes are the real swap simulated on the current block.</span>
+          <span>Buy stocks with ETH or USDC, and launches with the stock.</span>
         </Link>
         <a className="step" href={MARKETS_URL} target="_blank" rel="noreferrer">
           <span className="step-n">03</span>
           <b>Predict</b>
-          <span>Open a prediction market on the stock your token is priced in and let holders take a side.</span>
+          <span>Open a market on the stock and let holders take a side.</span>
         </a>
       </section>
 
@@ -414,13 +413,6 @@ export function BoardPage() {
               No Squidlor launch paired with {stock ? `${stock}c` : 'a stock'} yet. <Link to={stock ? `/launch?stock=${stock}` : '/launch'}>Be the first</Link>.
             </div>
           ) : null}
-        </div>
-        <div className="board-foot">
-          <span>Prices and volume are DEX pool prints via GeckoTerminal; a launch with no trades shows its on-chain opening price on its page.</span>
-          {q.data?.more ? <span>{q.data.more}</span> : null}
-          <span>
-            Any address works at <span className="mono">/t/&lt;address&gt;</span>
-          </span>
         </div>
       </section>
     </>

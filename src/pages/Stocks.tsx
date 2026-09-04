@@ -43,10 +43,7 @@ export function StocksPage() {
           <h1>
             Buy the stock <em>on Base</em>.
           </h1>
-          <p>
-            Thirteen US stocks, one token each, backed one-to-one and trading around the clock on Base's DEXes. Pay in ETH or USDC; Squidlor routes the swap
-            across every pool and shows the price before you sign.
-          </p>
+          <p>Thirteen US stocks, one token each, traded on Base with ETH or USDC.</p>
           {q.data ? <SessionPill {...q.data.session} /> : null}
         </div>
         <dl className="ledger">
@@ -68,7 +65,6 @@ export function StocksPage() {
         </dl>
       </section>
 
-      {q.data ? <div className="notice info">{q.data.eligibility}</div> : null}
       {q.data?.degraded ? <div className="notice">{q.data.degraded}</div> : null}
       {q.isError ? <div className="notice err">{q.error.message}</div> : null}
 
@@ -116,7 +112,6 @@ export function StocksPage() {
           </table>
         </div>
         <div className="board-foot">
-          <span>Prices are the deepest Base pool's print via GeckoTerminal; the reference is Chainlink's feed for the stock where one exists.</span>
           <span>
             Want a token priced in one of these? <Link to="/launch">Launch it</Link>.
           </span>

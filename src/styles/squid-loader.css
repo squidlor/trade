@@ -1,0 +1,177 @@
+/* ── Squid loader ──────────────────────────────────────────────────────────
+   The Squidlor mark as the loading indicator: the head ring is the spinner (a
+   bright arc orbits it), the tentacles sway, a violet glow breathes behind.
+
+   IDENTICAL COPY IN EVERY SQUIDLOR FRONTEND. Edit one, copy to all; the
+   canonical version lives in dashboard/src/styles/squid-loader.css.
+
+   Two consumers share these classes:
+     - index.html `#splash`, painted before the JS bundle has even downloaded
+     - <BrandLoader/> in src/components/brand-loader.tsx (or components/common)
+
+   It is imported into the main stylesheet on purpose. Vite links that in
+   <head>, which is render-blocking, so the splash paints fully styled.
+   No Tailwind utilities here: index.html must not depend on scanning, and
+   not every Squidlor app uses Tailwind.
+
+   Per-app theming, set on `#splash` (inline style) or a parent:
+     --squid-splash-bg    page background   (default #000)
+     --squid-splash-fg    wordmark colour   (default #fff)
+     --squid-splash-font  wordmark font stack
+   ──────────────────────────────────────────────────────────────────────── */
+
+.squid-loader {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+}
+
+.squid-loader__glow {
+  position: absolute;
+  inset: -45%;
+  border-radius: 50%;
+  pointer-events: none;
+  background: radial-gradient(
+    circle,
+    rgba(123, 77, 255, 0.5) 0%,
+    rgba(123, 77, 255, 0.14) 45%,
+    transparent 72%
+  );
+  filter: blur(16px);
+  animation: squid-glow 2.8s ease-in-out infinite;
+}
+
+.squid-loader__mark {
+  position: relative;
+  display: block;
+  overflow: visible;
+  animation: squid-float 3.2s ease-in-out infinite;
+}
+
+.squid-loader__ring {
+  fill: none;
+  stroke: rgba(123, 77, 255, 0.28);
+}
+
+/* pathLength="100" on the ellipse makes these percentages of the perimeter. */
+.squid-loader__arc {
+  fill: none;
+  stroke-linecap: round;
+  stroke-dasharray: 32 68;
+  animation: squid-orbit 1.4s linear infinite;
+}
+
+/* Each arm rotates about its own root (transform-origin set inline, in
+   viewBox units). `--s` flips direction so mirrored arms swing apart. */
+.squid-loader__arm {
+  fill: none;
+  stroke-linecap: round;
+  transform-box: view-box;
+  animation: squid-sway 2.4s ease-in-out infinite;
+  animation-delay: var(--d, 0s);
+}
+
+@keyframes squid-orbit {
+  to { stroke-dashoffset: -100; }
+}
+@keyframes squid-sway {
+  0%, 100% { transform: rotate(calc(var(--s, 1) * -6deg)); }
+  50%      { transform: rotate(calc(var(--s, 1) * 6deg)); }
+}
+@keyframes squid-float {
+  0%, 100% { transform: translateY(0); }
+  50%      { transform: translateY(-4px); }
+}
+@keyframes squid-glow {
+  0%, 100% { opacity: 0.55; transform: scale(0.94); }
+  50%      { opacity: 1;    transform: scale(1.06); }
+}
+
+/* ── Inline (in-page) variant ───────────────────────────────────────────── */
+
+.squid-inline {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+.squid-inline__caption {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: rgba(128, 128, 144, 0.9);
+}
+
+/* ── Full-screen splash ─────────────────────────────────────────────────── */
+
+.squid-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  display: grid;
+  place-items: center;
+  background: var(--squid-splash-bg, #000);
+  color: var(--squid-splash-fg, #fff);
+  transition: opacity 0.45s ease;
+}
+.squid-splash.is-done {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.squid-splash__stack {
+  display: grid;
+  justify-items: center;
+  gap: 26px;
+}
+.squid-splash__text {
+  display: grid;
+  justify-items: center;
+  gap: 10px;
+}
+.squid-splash__word {
+  font-family: var(--squid-splash-font, "Space Grotesk", "Inter", system-ui, -apple-system, sans-serif);
+  font-size: 24px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.04em;
+}
+.squid-splash__caption {
+  font: 500 11px/1 "Inter", system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  opacity: 0.45;
+}
+
+/* Pure CSS, no JS: if the bundle never arrives the user still learns why. */
+.squid-splash__hint {
+  position: absolute;
+  bottom: 40px;
+  left: 0;
+  right: 0;
+  text-align: center;
+  padding: 0 24px;
+  font: 400 12px/1.5 "Inter", system-ui, -apple-system, sans-serif;
+  opacity: 0;
+  animation: squid-reveal 0.4s ease 12s forwards;
+}
+@keyframes squid-reveal {
+  to { opacity: 0.4; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .squid-loader__mark,
+  .squid-loader__arm,
+  .squid-loader__glow {
+    animation: none;
+  }
+  .squid-loader__arc {
+    stroke-dasharray: none;
+    animation: squid-pulse 1.6s ease-in-out infinite;
+  }
+  @keyframes squid-pulse {
+    0%, 100% { opacity: 0.3; }
+    50%      { opacity: 1; }
+  }
+}

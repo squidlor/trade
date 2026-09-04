@@ -60,9 +60,6 @@ export function TradePanel({ overview }: { overview: TokenOverview }) {
           <span className="card-title">Trade ${sym}</span>
           <span className="tag warn">not on Doppler</span>
         </div>
-        <p className="dim" style={{ margin: '4px 0 14px', fontSize: 13.5 }}>
-          {overview.unavailableReason ?? 'This token was not launched through Doppler, so Squidlor cannot build its swap here.'}
-        </p>
         <a className="btn btn-primary btn-block" href={overview.links.uniswap} target="_blank" rel="noreferrer">
           Trade ${sym} on Uniswap ↗
         </a>
@@ -190,7 +187,7 @@ export function TradePanel({ overview }: { overview: TokenOverview }) {
             <b>{indicativeOut !== undefined ? `${fmtAmount(indicativeOut)} ${sym}` : `${fmtAmount(indicativeIn, 6)} ${stockSym}`}</b>
           </div>
           <div className="dim" style={{ fontSize: 12 }}>
-            Indicative, from the current price. Connect a wallet for an exact simulated quote.
+            Estimate · connect a wallet for an exact quote
           </div>
         </div>
       ) : null}
@@ -262,10 +259,6 @@ export function TradePanel({ overview }: { overview: TokenOverview }) {
         </div>
       ) : null}
 
-      <div className="trade-foot">
-        Buys are paid in {stockSym}, the tokenized stock this token trades against, on Uniswap v4 via the Universal Router. First trades need one or two
-        approvals; the quote is the swap simulated on the current block.
-      </div>
     </section>
   );
 }

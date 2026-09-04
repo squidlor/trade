@@ -148,11 +148,11 @@ export function PriceChart({
               <b>No trades yet</b>
               {spotUsd !== undefined ? (
                 <>
-                  ${symbol} is priced on-chain at {usd(spotUsd, { compact: false })}
-                  {mcapUsd !== undefined ? ` (${usd(mcapUsd)} market cap)` : ''}. The chart begins with the first trade.
+                  ${symbol} is at {usd(spotUsd, { compact: false })}
+                  {mcapUsd !== undefined ? ` · ${usd(mcapUsd)} market cap` : ''}
                 </>
               ) : (
-                <>The chart begins once the pool is indexed after its first trade.</>
+                <>The chart starts with the first trade.</>
               )}
             </div>
           </div>
@@ -166,7 +166,6 @@ export function PriceChart({
           </div>
         ) : null}
       </div>
-      <div className="chart-foot">DEX pool candles in USD via GeckoTerminal · not an oracle price</div>
     </section>
   );
 }

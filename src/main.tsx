@@ -7,6 +7,8 @@ import { App } from './App';
 import { wagmiConfig } from './lib/wagmi';
 import './styles/theme.css';
 import './styles/app.css';
+import './styles/squid-loader.css';
+import { SplashDismiss } from './components/brand-loader';
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -31,5 +33,6 @@ createRoot(rootEl).render(
         </BrowserRouter>
       </QueryClientProvider>
     </WagmiProvider>
+    <SplashDismiss />
   </StrictMode>,
 );

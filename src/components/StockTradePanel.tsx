@@ -188,7 +188,7 @@ export function StockTradePanel({ overview }: { overview: StockOverview }) {
           <span className="tag warn">no DEX market yet</span>
         </div>
         <p className="dim" style={{ margin: '4px 0 14px', fontSize: 13.5 }}>
-          No pool for {sym} has been indexed on Base yet, so there is nothing to route a swap through. Check back once it starts trading.
+          {sym} is not trading on Base yet.
         </p>
         <a className="btn btn-ghost btn-block" href={s.links.basescan} target="_blank" rel="noreferrer">
           {sym} on Basescan ↗
@@ -284,18 +284,16 @@ export function StockTradePanel({ overview }: { overview: StockOverview }) {
           {buy ? <CounterPicker value={counter} onChange={(c) => (setCounter(c), reset())} disabled={busy} /> : <StockChip symbol={s.symbol} tokenSymbol={sym} {...(s.logo ? { logo: s.logo } : {})} />}
         </div>
         <div className="swap-box-foot">
-          <button type="button" className="swap-flip" onClick={flipEntry} disabled={!payPriceUsd} title={entry === 'usd' ? `Type in ${paySym} instead` : 'Type in dollars instead'}>
-            {entry === 'usd' ? (
-              <>
-                {valid ? `≈ ${fmtAmount(payAmount, buy && counter === 'ETH' ? 6 : 4)} ${paySym}` : `Entering dollars · switch to ${paySym}`}
-                <span className="swap-flip-ico">⇅</span>
-              </>
-            ) : (
-              <>
-                {valid && payUsd !== undefined ? `≈ ${usd(payUsd, { compact: false })}` : `Entering ${paySym} · switch to dollars`}
-                <span className="swap-flip-ico">⇅</span>
-              </>
-            )}
+          {/* The conversion, and the tap that switches which unit you type in. */}
+          <button type="button" className="swap-flip" onClick={flipEntry} disabled={!payPriceUsd} title={entry === 'usd' ? `Type in ${paySym}` : 'Type in dollars'}>
+            <span className="swap-flip-ico">⇅</span>
+            {entry === 'usd'
+              ? valid
+                ? `${fmtAmount(payAmount, buy && counter === 'ETH' ? 6 : 4)} ${paySym}`
+                : paySym
+              : valid && payUsd !== undefined
+                ? usd(payUsd, { compact: false })
+                : 'USD'}
           </button>
           {insufficient ? <span className="swap-short">Not enough {paySym}{buy && counter === 'ETH' ? ' after gas' : ''}</span> : null}
         </div>
@@ -345,7 +343,7 @@ export function StockTradePanel({ overview }: { overview: StockOverview }) {
             ))}
       </div>
 
-      {s.thin ? <div className="notice" style={{ marginTop: 12 }}>Thin market: the deepest {sym} pool holds under $50k. Keep sizes small; the price will move against you.</div> : null}
+      {s.thin ? <div className="notice" style={{ marginTop: 12 }}>Thin market · large orders move the price</div> : null}
 
       {/* ── The quote's details, or the reason there is none ── */}
       {quote?.unavailableReason && quote.steps.length === 0 ? (
@@ -424,10 +422,6 @@ export function StockTradePanel({ overview }: { overview: StockOverview }) {
         )}
       </div>
 
-      <div className="trade-foot">
-        Routed across Base DEXes by KyberSwap; the quote is that route simulated from your wallet on the current block. Squidlor's
-        {overview.fee ? ` ${(overview.fee.bps / 100).toFixed(2)}%` : ''} fee is taken inside the same transaction. Not available to US persons.
-      </div>
     </section>
   );
 }

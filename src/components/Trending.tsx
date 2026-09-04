@@ -73,7 +73,7 @@ export function Trending({ rows }: { rows: BoardRow[] }) {
       </div>
 
       {ordered.length === 0 ? (
-        <div className="empty">Nothing has launched here yet. The board below fills as soon as the first token goes out.</div>
+        <div className="empty">Nothing has launched yet.</div>
       ) : (
         <>
           <div className="trend-grid">
@@ -94,9 +94,6 @@ export function Trending({ rows }: { rows: BoardRow[] }) {
                 </span>
               </button>
             ))}
-          </div>
-          <div className="board-foot">
-            <span>Every row is a token launched on Squidlor and priced in its tokenized stock. Figures are DEX pool prints; a launch with no trades yet shows its on-chain opening price.</span>
           </div>
         </>
       )}

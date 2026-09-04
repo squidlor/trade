@@ -113,7 +113,7 @@ export function EditProfile({ overview, onClose }: { overview: TokenOverview; on
             ✕
           </button>
         </div>
-        <p>What people see on this token's page and on the board. Only your wallet can change it.</p>
+        <p>Only your wallet can change this.</p>
 
         <div className="editor-image">
           <TokenLogo src={shownImage} symbol={overview.token.symbol} address={overview.token.address} size={84} />
