@@ -155,7 +155,8 @@ export function StockTradePanel({ overview }: { overview: StockOverview }) {
             <button
               className="bal"
               onClick={() => {
-                if (side === 'buy') (setBuyUnit('counter'), setRaw(String(counterBal)));
+                // An ETH buy keeps a little back for gas; the server refuses a full-balance ETH buy for the same reason.
+                if (side === 'buy') (setBuyUnit('counter'), setRaw(String(counter === 'ETH' ? Math.max(0, counterBal - 0.0003) : counterBal)));
                 else (setSellUnit('all'), setRaw(String(stockBal)));
               }}
             >
@@ -190,7 +191,7 @@ export function StockTradePanel({ overview }: { overview: StockOverview }) {
               </div>
               <div className="quote-row">
                 <span>Squidlor fee</span>
-                <b>{quote.fee ? `${(quote.fee.bps / 100).toFixed(2)}%${quote.fee.usd !== undefined ? ` · ${usd(quote.fee.usd, { compact: false })}` : ''}` : 'none'}</b>
+                <b>{quote.fee ? `${(quote.fee.bps / 100).toFixed(2)}% · ${fmtAmount(quote.fee.collected, 6)} ${quote.fee.currency}${quote.fee.usd !== undefined ? ` · ${usd(quote.fee.usd, { compact: false })}` : ''}` : 'none'}</b>
               </div>
               <div className="quote-row">
                 <span>Route</span>

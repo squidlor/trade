@@ -814,7 +814,8 @@ export interface StockQuote {
   expectedOutUsd?: number;
   priceUsdPerStock?: number;
   slippageBps: number;
-  fee?: { bps: number; usd?: number };
+  /** As measured in the simulation (treasury balance delta); absent when the router collected none. */
+  fee?: { bps: number; usd?: number; collected: string; currency: CounterSymbol };
   route: string[];
   gasUsd?: number;
   steps: TradeStep[];
@@ -842,7 +843,9 @@ export async function postStockQuote(req: StockQuoteRequest): Promise<StockQuote
     ...optional('expectedOutUsd', num(r.expectedOutUsd)),
     ...optional('priceUsdPerStock', num(r.priceUsdPerStock)),
     slippageBps: num(r.slippageBps) ?? 0,
-    ...(feeBps !== undefined ? { fee: { bps: feeBps, ...optional('usd', fee ? num(fee.usd) : undefined) } } : {}),
+    ...(feeBps !== undefined && fee
+      ? { fee: { bps: feeBps, ...optional('usd', num(fee.usd)), collected: str(fee.collected) ?? '0', currency: fee.currency === 'USDC' ? 'USDC' : 'ETH' } }
+      : {}),
     route: Array.isArray(r.route) ? r.route.flatMap((v) => (typeof v === 'string' ? [v] : [])) : [],
     ...optional('gasUsd', num(r.gasUsd)),
     steps: Array.isArray(r.steps) ? r.steps.map(parseStep) : [],

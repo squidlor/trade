@@ -127,11 +127,18 @@ export function useSwapSteps<Q extends Signable>(opts: {
       return;
     }
     let quote: Q | undefined = phase.at === 'ready' ? phase.quote : phase.at === 'error' ? phase.quote : undefined;
-    const resume = phase.at === 'error' && phase.quote && phase.step !== undefined ? { step: phase.step, hashes: phase.hashes ?? [] } : undefined;
+    let resume = phase.at === 'error' && phase.quote && phase.step !== undefined ? { step: phase.step, hashes: phase.hashes ?? [] } : undefined;
     try {
-      if (!quote || (!resume && Date.now() - quote.at > STALE_MS)) {
+      /**
+       * A stale quote is re-fetched even on a retry. The failed run's calldata is bound to the
+       * prices of its own block, and a retry minutes later would sign it unchanged; a fresh quote
+       * starts from step 0 but omits any approval that already landed, because the server reads
+       * the allowance from the chain. So the retry loses nothing and signs current numbers.
+       */
+      if (!quote || Date.now() - quote.at > STALE_MS) {
         setPhase({ at: 'quoting' });
         quote = await getQuote(address);
+        resume = undefined;
         if (quote.steps.length === 0) {
           setPhase({ at: 'ready', quote });
           return;
