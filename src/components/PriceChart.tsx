@@ -19,11 +19,24 @@ const minMoveFor = (candles: Candle[]): number => {
  * fed data on change; interval tabs re-query and replace the series data rather than the chart,
  * so the axis does not flash. Colours follow the theme tokens rather than the library defaults.
  */
-export function PriceChart({ tokenKey, symbol, spotUsd, mcapUsd }: { tokenKey: string; symbol: string; spotUsd?: number; mcapUsd?: number }) {
+export function PriceChart({
+  tokenKey,
+  symbol,
+  spotUsd,
+  mcapUsd,
+  load,
+}: {
+  tokenKey: string;
+  symbol: string;
+  spotUsd?: number;
+  mcapUsd?: number;
+  /** Where candles come from. Default: the launched token's pool; the stock page passes its own. */
+  load?: (interval: Interval) => Promise<{ indexed: boolean; candles: Candle[] }>;
+}) {
   const [interval, setInterval_] = useState<Interval>('1h');
   const q = useQuery({
-    queryKey: ['candles', tokenKey, interval],
-    queryFn: () => fetchCandles(tokenKey, interval),
+    queryKey: [load ? 'stock-candles' : 'candles', tokenKey, interval],
+    queryFn: () => (load ? load(interval) : fetchCandles(tokenKey, interval)),
     refetchInterval: interval === '1m' ? 15_000 : 60_000,
   });
 

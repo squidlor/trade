@@ -1,59 +1,29 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { isAddress, isHex } from 'viem';
-import { useAccount, usePublicClient, useSendTransaction, useSwitchChain } from 'wagmi';
-import { ApiError, postQuote, type BuyUnit, type Quote, type SellUnit, type Side, type TokenOverview, type TradeStep } from '../lib/api';
+import { useCallback, useState } from 'react';
+import { useSwapSteps } from '../hooks/useSwapSteps';
+import { postQuote, type BuyUnit, type Quote, type SellUnit, type Side, type TokenOverview } from '../lib/api';
 import { amount as fmtAmount, usd } from '../lib/format';
 import { buyStockUrl, txUrl } from '../lib/links';
-import { CHAIN } from '../lib/wagmi';
 import { ConnectBlock } from './Connect';
+import { StepsList } from './StepsList';
 
 /**
- * Buy and sell, against the server's simulated quote.
+ * Buy and sell a launched token, against the server's simulated quote.
  *
  * WHAT THE SERVER DOES AND THIS DOES NOT. The quote is the real swap run through eth_simulateV1
  * from this wallet, so `expectedOut` is what the router would return on the current block and the
  * steps are the exact calldata, approvals included only when missing. This panel never builds
- * calldata: it asks, shows, and hands each step to the wallet in order, waiting for the receipt
- * between them. A quote older than STALE_MS is re-fetched at the moment of signing so the wallet
- * never sees a number the pool has moved away from.
+ * calldata: the signing loop (hooks/useSwapSteps) asks, shows, and hands each step to the wallet.
  *
  * A buy is PAID IN THE STOCK TOKEN (NVDAc for an NVDA-paired token), never in ETH. When the wallet
  * has none the server says so, with where to get it, and the panel relays that instead of failing.
  */
-
-const STALE_MS = 30_000;
-const DEBOUNCE_MS = 450;
-
-type Phase =
-  | { at: 'idle' }
-  | { at: 'quoting' }
-  | { at: 'ready'; quote: Quote }
-  | { at: 'signing'; quote: Quote; step: number; hashes: string[]; mining?: string }
-  | { at: 'done'; quote: Quote; hashes: string[] }
-  | { at: 'error'; message: string; quote?: Quote; step?: number; hashes?: string[] };
-
-const firstLine = (e: unknown): string => {
-  if (e instanceof ApiError) return e.message;
-  const r = e as { shortMessage?: string; message?: string } | undefined;
-  const m = r?.shortMessage ?? r?.message ?? String(e);
-  if (/user rejected|user denied|rejected the request/i.test(m)) return 'Rejected in the wallet. Nothing was sent.';
-  return m.split('\n')[0]?.slice(0, 180) ?? 'Something went wrong.';
-};
-
 export function TradePanel({ overview }: { overview: TokenOverview }) {
-  const { address, isConnected, chainId } = useAccount();
-  const { switchChainAsync, isPending: switching } = useSwitchChain();
-  const { sendTransactionAsync } = useSendTransaction();
-  const publicClient = usePublicClient({ chainId: CHAIN.id });
   const qc = useQueryClient();
-
   const [side, setSide] = useState<Side>('buy');
   const [buyUnit, setBuyUnit] = useState<BuyUnit>('usd');
   const [sellUnit, setSellUnit] = useState<SellUnit>('tokens');
   const [raw, setRaw] = useState('');
-  const [phase, setPhase] = useState<Phase>({ at: 'idle' });
-  const reqId = useRef(0);
 
   const sym = overview.token.symbol || 'token';
   const stockSym = overview.stock.tokenSymbol;
@@ -63,104 +33,23 @@ export function TradePanel({ overview }: { overview: TokenOverview }) {
   const unit = side === 'buy' ? buyUnit : sellUnit;
   const amount = unit === 'all' ? tokenBal : Number(raw);
   const valid = unit === 'all' ? tokenBal > 0 : Number.isFinite(amount) && amount > 0;
-  const onBase = chainId === CHAIN.id;
 
   const getQuote = useCallback(
-    async (wallet: string): Promise<Quote> =>
-      postQuote({ wallet, token: overview.token.address, side, amount: unit === 'all' ? 0 : amount, unit }),
+    async (wallet: string): Promise<Quote> => postQuote({ wallet, token: overview.token.address, side, amount: unit === 'all' ? 0 : amount, unit }),
     [overview.token.address, side, amount, unit],
   );
-
-  // Re-quote whenever the inputs settle. Stale responses are dropped by id.
-  useEffect(() => {
-    if (!isConnected || !address || !valid || !overview.tradeable) {
-      setPhase((p) => (p.at === 'signing' || p.at === 'done' || p.at === 'error' ? p : { at: 'idle' }));
-      return;
-    }
-    const id = ++reqId.current;
-    setPhase((p) => (p.at === 'signing' ? p : { at: 'quoting' }));
-    const t = setTimeout(async () => {
-      try {
-        const quote = await getQuote(address);
-        if (reqId.current === id) setPhase({ at: 'ready', quote });
-      } catch (e) {
-        if (reqId.current === id) setPhase({ at: 'error', message: firstLine(e) });
-      }
-    }, DEBOUNCE_MS);
-    return () => clearTimeout(t);
-  }, [isConnected, address, valid, getQuote, overview.tradeable]);
-
-  const refresh = () => {
+  const refresh = useCallback(() => {
     void qc.invalidateQueries({ queryKey: ['token'] });
     void qc.invalidateQueries({ queryKey: ['trades'] });
     void qc.invalidateQueries({ queryKey: ['candles'] });
-  };
-
-  /** Hand the steps to the wallet in order; stop where it stops. Approvals that landed stay landed. */
-  const runSteps = async (quote: Quote, from: number, hashes: string[]) => {
-    if (!publicClient) throw new Error('No RPC client for Base.');
-    for (let i = from; i < quote.steps.length; i++) {
-      const step: TradeStep | undefined = quote.steps[i];
-      if (!step) break;
-      const { to, data, value, gasLimit } = step.transaction;
-      if (!isAddress(to) || !isHex(data)) throw new Error(`Step ${i + 1} is malformed.`);
-      setPhase({ at: 'signing', quote, step: i, hashes: [...hashes] });
-      let hash: `0x${string}`;
-      try {
-        hash = await sendTransactionAsync({
-          to,
-          data,
-          value: BigInt(value || '0'),
-          chainId: CHAIN.id,
-          ...(gasLimit ? { gas: BigInt(gasLimit) } : {}),
-        });
-      } catch (e) {
-        setPhase({ at: 'error', message: `${step.label}: ${firstLine(e)}`, quote, step: i, hashes: [...hashes] });
-        return;
-      }
-      hashes.push(hash);
-      setPhase({ at: 'signing', quote, step: i, hashes: [...hashes], mining: hash });
-      const rc = await publicClient.waitForTransactionReceipt({ hash, confirmations: 1, timeout: 180_000 });
-      if (rc.status === 'reverted') {
-        setPhase({ at: 'error', message: `${step.label} reverted on-chain. Nothing after it was sent.`, quote, step: i, hashes: [...hashes] });
-        refresh();
-        return;
-      }
-    }
-    setPhase({ at: 'done', quote, hashes: [...hashes] });
+  }, [qc]);
+  const onDone = useCallback(() => {
     setRaw('');
     refresh();
-  };
+  }, [refresh]);
 
-  const go = async () => {
-    if (!address) return;
-    if (!onBase) {
-      try {
-        await switchChainAsync({ chainId: CHAIN.id });
-      } catch (e) {
-        setPhase({ at: 'error', message: firstLine(e) });
-      }
-      return;
-    }
-    let quote: Quote | undefined = phase.at === 'ready' ? phase.quote : phase.at === 'error' ? phase.quote : undefined;
-    const resume = phase.at === 'error' && phase.quote && phase.step !== undefined ? { step: phase.step, hashes: phase.hashes ?? [] } : undefined;
-    try {
-      if (!quote || (!resume && Date.now() - quote.at > STALE_MS)) {
-        setPhase({ at: 'quoting' });
-        quote = await getQuote(address);
-        if (quote.steps.length === 0) {
-          setPhase({ at: 'ready', quote });
-          return;
-        }
-      }
-      await runSteps(quote, resume?.step ?? 0, resume?.hashes ?? []);
-    } catch (e) {
-      setPhase({ at: 'error', message: firstLine(e), ...(quote ? { quote } : {}) });
-    }
-  };
+  const { phase, quote, busy, resumable, go, isConnected, onBase, switching } = useSwapSteps<Quote>({ getQuote, enabled: valid && overview.tradeable, onDone, onReverted: refresh });
 
-  const quote = phase.at === 'ready' || phase.at === 'signing' || phase.at === 'done' ? phase.quote : phase.at === 'error' ? phase.quote : undefined;
-  const busy = phase.at === 'quoting' || phase.at === 'signing' || switching;
   const indicativeOut = !isConnected && spot && valid && side === 'buy' ? (buyUnit === 'usd' ? amount / spot : (amount * overview.stock.priceUsd) / spot) : undefined;
   const indicativeIn = !isConnected && spot && valid && side === 'sell' ? (amount * spot) / (overview.stock.priceUsd || 1) : undefined;
 
@@ -254,7 +143,7 @@ export function TradePanel({ overview }: { overview: TokenOverview }) {
           {quote.expectedOut ? (
             <>
               <div className="quote-row hero">
-                <span>{side === 'buy' ? 'You receive about' : 'You receive about'}</span>
+                <span>You receive about</span>
                 <b>
                   {fmtAmount(quote.expectedOut)} {side === 'buy' ? sym : stockSym}
                   {quote.expectedOutUsd !== undefined ? <span className="dim"> · {usd(quote.expectedOutUsd)}</span> : null}
@@ -306,24 +195,7 @@ export function TradePanel({ overview }: { overview: TokenOverview }) {
         </div>
       ) : null}
 
-      {phase.at === 'signing' || phase.at === 'done' || (phase.at === 'error' && phase.quote && phase.step !== undefined) ? (
-        <ol className="steps">
-          {(phase.quote?.steps ?? []).map((s, i) => {
-            const hashes = 'hashes' in phase ? (phase.hashes ?? []) : [];
-            const done = i < hashes.length && !(phase.at === 'error' && i === phase.step && !hashes[i]);
-            const now = phase.at === 'signing' && i === phase.step;
-            return (
-              <li key={i} className={done ? 'done' : now ? 'now' : ''}>
-                <span className="n">{done ? '✓' : i + 1}</span>
-                <span>
-                  {s.label}
-                  {now ? (phase.mining ? ' · mining…' : ' · confirm in wallet') : ''}
-                </span>
-              </li>
-            );
-          })}
-        </ol>
-      ) : null}
+      <StepsList phase={phase} />
 
       {phase.at === 'done' ? (
         <div className="result ok">
@@ -354,8 +226,8 @@ export function TradePanel({ overview }: { overview: TokenOverview }) {
                 ? phase.mining
                   ? `Mining step ${phase.step + 1}…`
                   : `Confirm step ${phase.step + 1} of ${phase.quote.steps.length}`
-                : phase.at === 'error' && phase.quote && phase.step !== undefined
-                  ? `Retry from step ${phase.step + 1}`
+                : resumable && phase.at === 'error'
+                  ? `Retry from step ${(phase.step ?? 0) + 1}`
                   : !valid
                     ? 'Enter an amount'
                     : side === 'buy'

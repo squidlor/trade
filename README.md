@@ -12,8 +12,28 @@ Signing happens in the visitor's wallet; the page hands over unsigned transactio
 
 | Route | What |
 |---|---|
-| `/` | The board: most active and newest stock-paired tokens, filterable by stock. |
-| `/t/<address or symbol>` | One token: chart, spot price, trades, buy/sell panel, prediction-market card. |
+| `/` | Home: the stock tiles, trending on Base, then the board of Squidlor launches. |
+| `/stocks` | The thirteen tokenized stocks: price, 24h, Chainlink reference, volume, liquidity, venue. |
+| `/s/<ticker>` | One stock (`/s/NVDA`): chart, buy/sell for ETH or USDC, launches paired with it, prediction card. |
+| `/t/<address or symbol>` | One launched token: chart, spot price, trades, buy/sell panel, prediction-market card. |
+| `/launch`, `/me` | Launch a stock-paired token; the creator's dashboard. |
+
+## Buying the stock itself
+
+`/s/NVDA` swaps ETH or USDC into the B20 stock token through `POST /api/launchpad/stocks/quote`.
+The server asks KyberSwap's aggregator for the route (Aerodrome Slipstream holds most of the
+liquidity), builds the transaction, simulates it from the wallet with `eth_simulateV1`, and returns
+the same `steps` shape as a launch quote: an ERC-20 approval when needed, then the swap. Squidlor's
+fee (0.1% by default, `KYBER_FEE_BPS` on the server) is collected by Kyber's router in the same
+transaction and is already out of the numbers shown. Both trade panels run through one signing
+loop, `src/hooks/useSwapSteps.ts`.
+
+Coinbase's tokenized stocks are Regulation S and not for US persons; the token's on-chain transfer
+policy can block a wallet, which the simulated quote reports before anything is sent. The page shows
+that notice on every stock surface.
+
+The trending section reads `GET /api/dex/trending` (GeckoTerminal's trending pools on Base, folded
+to tokens). Those rows link out to the pool; they are not Squidlor launches and get no quote.
 
 ## How a trade works
 

@@ -44,6 +44,7 @@ export function Shell({ children }: { children: ReactNode }) {
             <NavLink to="/" end>
               Tokens
             </NavLink>
+            <NavLink to="/stocks">Stocks</NavLink>
             <NavLink to="/launch">Launch</NavLink>
             <NavLink to="/me">My launches</NavLink>
             <a className="ext" href={MARKETS_URL} target="_blank" rel="noreferrer">

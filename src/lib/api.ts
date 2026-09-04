@@ -648,3 +648,291 @@ export async function fetchHolders(key: string): Promise<Holders> {
     catchingUp: bool(r.catchingUp),
   };
 }
+
+// ── Tokenized stocks themselves ─────────────────────────────────────────────────────────────────
+//
+// The thirteen Coinbase B20 stock tokens, bought and sold for ETH or USDC through the server's
+// aggregator route (oracle-chat/server/src/stocks-api.ts). Same TradeStep shape as a launch quote,
+// so both panels run through the one signing loop in hooks/useSwapSteps.
+
+export type UsSession = 'regular' | 'pre' | 'after' | 'closed';
+
+export interface StockPool {
+  id: string;
+  dex: string;
+  name: string;
+  liquidityUsd?: number;
+  stockSide: 'base' | 'quote';
+}
+
+export interface StockRow {
+  symbol: string;
+  tokenSymbol: string;
+  name: string;
+  address: string;
+  logo?: string;
+  priceUsd?: number;
+  change1hPct?: number;
+  change24hPct?: number;
+  volume24hUsd?: number;
+  liquidityUsd?: number;
+  mcapUsd?: number;
+  pool?: StockPool;
+  /** The deepest pool is shallow; the server withholds the % move and the panel warns on size. */
+  thin: boolean;
+  /** Chainlink's B20 feed for the stock, where one exists: the off-chain reference. */
+  referencePriceUsd?: number;
+  referenceUpdatedAt?: number;
+  hasFeed: boolean;
+  links: { basescan: string; uniswap: string; trade: string };
+}
+
+export interface StockList {
+  session: { session: UsSession; label: string };
+  stocks: StockRow[];
+  eligibility: string;
+  degraded?: string;
+  source: string;
+}
+
+const parseSession = (v: unknown): { session: UsSession; label: string } => {
+  const r = isRecord(v) ? v : {};
+  const s = r.session;
+  return { session: s === 'regular' || s === 'pre' || s === 'after' ? s : 'closed', label: str(r.label) ?? '' };
+};
+
+function parseStockRow(v: unknown): StockRow {
+  const r = isRecord(v) ? v : {};
+  const pool = isRecord(r.pool) ? r.pool : undefined;
+  const links = isRecord(r.links) ? r.links : {};
+  return {
+    symbol: need(str(r.symbol), 'stock.symbol'),
+    tokenSymbol: str(r.tokenSymbol) ?? `${str(r.symbol) ?? ''}c`,
+    name: str(r.name) ?? '',
+    address: need(str(r.address), 'stock.address'),
+    ...optional('logo', str(r.logo)),
+    ...optional('priceUsd', num(r.priceUsd)),
+    ...optional('change1hPct', num(r.change1hPct)),
+    ...optional('change24hPct', num(r.change24hPct)),
+    ...optional('volume24hUsd', num(r.volume24hUsd)),
+    ...optional('liquidityUsd', num(r.liquidityUsd)),
+    ...optional('mcapUsd', num(r.mcapUsd)),
+    ...(pool
+      ? {
+          pool: {
+            id: str(pool.id) ?? '',
+            dex: str(pool.dex) ?? '',
+            name: str(pool.name) ?? '',
+            ...optional('liquidityUsd', num(pool.liquidityUsd)),
+            stockSide: pool.stockSide === 'quote' ? 'quote' : 'base',
+          },
+        }
+      : {}),
+    thin: bool(r.thin),
+    ...optional('referencePriceUsd', num(r.referencePriceUsd)),
+    ...optional('referenceUpdatedAt', num(r.referenceUpdatedAt)),
+    hasFeed: bool(r.hasFeed),
+    links: { basescan: str(links.basescan) ?? '', uniswap: str(links.uniswap) ?? '', trade: str(links.trade) ?? '' },
+  };
+}
+
+export async function fetchStocks(): Promise<StockList> {
+  const b = await getJson('/api/launchpad/stocks');
+  const r = isRecord(b) ? b : {};
+  return {
+    session: parseSession(r.session),
+    stocks: Array.isArray(r.stocks) ? r.stocks.map(parseStockRow) : [],
+    eligibility: str(r.eligibility) ?? '',
+    ...optional('degraded', str(r.degraded)),
+    source: str(r.source) ?? '',
+  };
+}
+
+export type CounterSymbol = 'ETH' | 'USDC';
+
+export interface StockOverview {
+  session: { session: UsSession; label: string };
+  stock: StockRow;
+  counters: { symbol: CounterSymbol; priceUsd?: number }[];
+  wallet?: { eth: string; usdc: string; stock: string };
+  fee?: { bps: number };
+  slippageBps: number;
+  eligibility: string;
+}
+
+export async function fetchStock(symbol: string, wallet?: string): Promise<StockOverview> {
+  const q = wallet ? `?wallet=${encodeURIComponent(wallet)}` : '';
+  const b = await getJson(`/api/launchpad/stocks/${encodeURIComponent(symbol)}${q}`);
+  const r = isRecord(b) ? b : {};
+  const wallet_ = isRecord(r.wallet) ? r.wallet : undefined;
+  const fee = isRecord(r.fee) ? num(r.fee.bps) : undefined;
+  return {
+    session: parseSession(r.session),
+    stock: parseStockRow(r.stock),
+    counters: Array.isArray(r.counters)
+      ? r.counters.flatMap((c): StockOverview['counters'] => {
+          if (!isRecord(c)) return [];
+          const sym = c.symbol === 'ETH' || c.symbol === 'USDC' ? c.symbol : undefined;
+          return sym ? [{ symbol: sym, ...optional('priceUsd', num(c.priceUsd)) }] : [];
+        })
+      : [],
+    ...(wallet_ ? { wallet: { eth: str(wallet_.eth) ?? '0', usdc: str(wallet_.usdc) ?? '0', stock: str(wallet_.stock) ?? '0' } } : {}),
+    ...(fee !== undefined ? { fee: { bps: fee } } : {}),
+    slippageBps: num(r.slippageBps) ?? 0,
+    eligibility: str(r.eligibility) ?? '',
+  };
+}
+
+export async function fetchStockCandles(symbol: string, interval: Interval, limit = 300): Promise<{ indexed: boolean; candles: Candle[] }> {
+  const b = await getJson(`/api/launchpad/stocks/${encodeURIComponent(symbol)}/candles?interval=${interval}&limit=${limit}`);
+  const r = isRecord(b) ? b : {};
+  const candles: Candle[] = Array.isArray(r.candles)
+    ? r.candles.flatMap((c): Candle[] => {
+        if (!isRecord(c)) return [];
+        const t = num(c.t), o = num(c.o), h = num(c.h), l = num(c.l), cl = num(c.c);
+        return t !== undefined && o !== undefined && h !== undefined && l !== undefined && cl !== undefined ? [{ t, o, h, l, c: cl, v: num(c.v) ?? 0 }] : [];
+      })
+    : [];
+  return { indexed: r.pool !== null && r.pool !== undefined, candles };
+}
+
+export type StockBuyUnit = 'usd' | 'counter';
+export type StockSellUnit = 'stock' | 'all';
+
+export type StockQuoteRequest =
+  | { side: 'buy'; wallet: string; stock: string; counter: CounterSymbol; amount: number; unit: StockBuyUnit }
+  | { side: 'sell'; wallet: string; stock: string; counter: CounterSymbol; amount: number; unit: StockSellUnit };
+
+export interface StockQuote {
+  side: Side;
+  stock: { symbol: string; tokenSymbol: string; name: string; address: string; priceUsd: number };
+  counter: { symbol: CounterSymbol; decimals: number; priceUsd?: number };
+  amountIn: string;
+  amountInUsd?: number;
+  expectedOut?: string;
+  minOut?: string;
+  expectedOutUsd?: number;
+  priceUsdPerStock?: number;
+  slippageBps: number;
+  fee?: { bps: number; usd?: number };
+  route: string[];
+  gasUsd?: number;
+  steps: TradeStep[];
+  unavailableReason?: string;
+  needs?: { token: string; amount: string; have: string; getItAt: string };
+  at: number;
+}
+
+export async function postStockQuote(req: StockQuoteRequest): Promise<StockQuote> {
+  const b = await getJson('/api/launchpad/stocks/quote', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(req) });
+  const r = isRecord(b) ? b : {};
+  const stock = isRecord(r.stock) ? r.stock : {};
+  const counter = isRecord(r.counter) ? r.counter : {};
+  const fee = isRecord(r.fee) ? r.fee : undefined;
+  const needs = isRecord(r.needs) ? r.needs : undefined;
+  const feeBps = fee ? num(fee.bps) : undefined;
+  return {
+    side: r.side === 'sell' ? 'sell' : 'buy',
+    stock: { symbol: str(stock.symbol) ?? '', tokenSymbol: str(stock.tokenSymbol) ?? '', name: str(stock.name) ?? '', address: str(stock.address) ?? '', priceUsd: num(stock.priceUsd) ?? 0 },
+    counter: { symbol: counter.symbol === 'USDC' ? 'USDC' : 'ETH', decimals: num(counter.decimals) ?? 18, ...optional('priceUsd', num(counter.priceUsd)) },
+    amountIn: str(r.amountIn) ?? '0',
+    ...optional('amountInUsd', num(r.amountInUsd)),
+    ...optional('expectedOut', str(r.expectedOut)),
+    ...optional('minOut', str(r.minOut)),
+    ...optional('expectedOutUsd', num(r.expectedOutUsd)),
+    ...optional('priceUsdPerStock', num(r.priceUsdPerStock)),
+    slippageBps: num(r.slippageBps) ?? 0,
+    ...(feeBps !== undefined ? { fee: { bps: feeBps, ...optional('usd', fee ? num(fee.usd) : undefined) } } : {}),
+    route: Array.isArray(r.route) ? r.route.flatMap((v) => (typeof v === 'string' ? [v] : [])) : [],
+    ...optional('gasUsd', num(r.gasUsd)),
+    steps: Array.isArray(r.steps) ? r.steps.map(parseStep) : [],
+    ...optional('unavailableReason', str(r.unavailableReason)),
+    ...(needs
+      ? { needs: { token: str(needs.token) ?? '', amount: str(needs.amount) ?? '', have: str(needs.have) ?? '', getItAt: str(needs.getItAt) ?? '' } }
+      : {}),
+    at: Date.now(),
+  };
+}
+
+// ── Trending on Base ────────────────────────────────────────────────────────────────────────────
+
+export const TREND_WINDOWS = ['1h', '6h', '24h'] as const;
+export type TrendWindow = (typeof TREND_WINDOWS)[number];
+export type TrendRank = 'trending' | 'volume' | 'new';
+
+export interface TrendingToken {
+  symbol: string;
+  name?: string;
+  address?: string;
+  pool: string;
+  poolName?: string;
+  dex?: string;
+  quoteSymbol?: string;
+  priceUsd?: number;
+  changePercent: Partial<Record<'5m' | '1h' | '6h' | '24h', number>>;
+  volume24hUsd?: number;
+  liquidityUsd?: number;
+  mcapUsd?: number;
+  fdvUsd?: number;
+  turnover?: number;
+  buys24h?: number;
+  sells24h?: number;
+  poolCreatedAt?: string;
+  imageUrl?: string;
+}
+
+export interface Trending {
+  rank: TrendRank;
+  window: TrendWindow;
+  tokens: TrendingToken[];
+  notes: string[];
+  source: string;
+}
+
+function parseTrendingToken(v: unknown): TrendingToken[] {
+  const r = isRecord(v) ? v : {};
+  const symbol = str(r.symbol);
+  const pool = str(r.pool);
+  if (!symbol || !pool) return [];
+  const cp = isRecord(r.changePercent) ? r.changePercent : {};
+  const vol = isRecord(r.volumeUsd) ? r.volumeUsd : {};
+  const changePercent: TrendingToken['changePercent'] = {};
+  for (const k of ['5m', '1h', '6h', '24h'] as const) {
+    const n = num(cp[k]);
+    if (n !== undefined) changePercent[k] = n;
+  }
+  return [
+    {
+      symbol,
+      ...optional('name', str(r.name)),
+      ...optional('address', str(r.address)),
+      pool,
+      ...optional('poolName', str(r.poolName)),
+      ...optional('dex', str(r.dex)),
+      ...optional('quoteSymbol', str(r.quoteSymbol)),
+      ...optional('priceUsd', num(r.priceUsd)),
+      changePercent,
+      ...optional('volume24hUsd', num(vol['24h'])),
+      ...optional('liquidityUsd', num(r.liquidityUsd)),
+      ...optional('mcapUsd', num(r.mcapUsd)),
+      ...optional('fdvUsd', num(r.fdvUsd)),
+      ...optional('turnover', num(r.turnover)),
+      ...optional('buys24h', num(r.buys24h)),
+      ...optional('sells24h', num(r.sells24h)),
+      ...optional('poolCreatedAt', str(r.poolCreatedAt)),
+      ...optional('imageUrl', str(r.imageUrl)),
+    },
+  ];
+}
+
+export async function fetchTrending(window: TrendWindow, rank: TrendRank = 'trending', limit = 12): Promise<Trending> {
+  const b = await getJson(`/api/dex/trending?window=${window}&rank=${rank}&limit=${limit}`);
+  const r = isRecord(b) ? b : {};
+  return {
+    rank,
+    window,
+    tokens: Array.isArray(r.tokens) ? r.tokens.flatMap(parseTrendingToken) : [],
+    notes: Array.isArray(r.notes) ? r.notes.flatMap((n) => (typeof n === 'string' ? [n] : [])) : [],
+    source: str(r.source) ?? '',
+  };
+}

@@ -4,6 +4,8 @@ import { BoardPage } from './pages/Board';
 import { CreatorPage } from './pages/Creator';
 import { LaunchPage } from './pages/Launch';
 import { NotFound } from './pages/NotFound';
+import { StockPage } from './pages/Stock';
+import { StocksPage } from './pages/Stocks';
 import { TokenPage } from './pages/Token';
 
 export function App() {
@@ -14,6 +16,8 @@ export function App() {
         <Route path="/launch" element={<LaunchPage />} />
         <Route path="/me" element={<CreatorPage />} />
         <Route path="/t/:key" element={<TokenPage />} />
+        <Route path="/stocks" element={<StocksPage />} />
+        <Route path="/s/:symbol" element={<StockPage />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Shell>

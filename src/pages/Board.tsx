@@ -1,7 +1,9 @@
 import { useQueries, useQuery } from '@tanstack/react-query';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { StocksStrip } from '../components/StocksStrip';
 import { StockLogo, TokenLogo } from '../components/TokenLogo';
+import { Trending } from '../components/Trending';
 import { fetchBoard, fetchLaunchConfig, fetchToken, type BoardRow } from '../lib/api';
 
 type Row = BoardRow & { logo?: string; stockLogo?: string };
@@ -312,17 +314,21 @@ export function BoardPage() {
 
       <Tape rows={all} />
 
+      <StocksStrip />
+
+      <Trending rows={all} />
+
       <section className="steps reveal" style={{ animationDelay: '380ms' }} aria-label="How it works">
         <Link className="step" to="/launch">
           <span className="step-n">01</span>
           <b>Launch</b>
           <span>Name a token, pick a stock, set the opening market cap. Two signatures, and the creator is paid a share of every trade forever.</span>
         </Link>
-        <div className="step">
+        <Link className="step" to="/stocks">
           <span className="step-n">02</span>
           <b>Trade</b>
-          <span>Buy with the stock token, sell back into it. Quotes are the real swap simulated on the current block.</span>
-        </div>
+          <span>Buy the stock token itself with ETH or USDC, then buy launches with it and sell back. Quotes are the real swap simulated on the current block.</span>
+        </Link>
         <a className="step" href={MARKETS_URL} target="_blank" rel="noreferrer">
           <span className="step-n">03</span>
           <b>Predict</b>
